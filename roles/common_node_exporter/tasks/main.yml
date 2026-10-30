@@ -178,10 +178,28 @@
       # Managed by Ansible (common_node_exporter): heartbeat after a successful run
       [Service]
       ExecStartPost=/usr/local/sbin/heartbeat-mark {{ item.task }} {{ item.max_age }}
+      {% if item.sandboxed | default(false) %}
+      # ExecStartPost runs inside the unit's ProtectSystem=strict sandbox
+      ReadWritePaths=/var/lib/node_exporter/textfile
+      {% endif %}
   loop: "{{ heartbeat_units | selectattr('stack', 'in', ['all', stack]) | list }}"
   loop_control:
     label: "{{ item.unit }}"
   notify: reload systemd
+
+# The alert only sees heartbeats that exist: a job whose very first
+# heartbeat-mark fails never shows up and never alerts. Found 2026-10-30:
+# visitor-stats-daily ran fine but its heartbeat died on the read-only
+# sandbox every night since the drop-in came, and no alert came. Seeding the
+# file once with the rollout time turns "never written" into "overdue after
+# max_age". creates= leaves files of jobs that already report untouched.
+- name: Node Exporter | Seed heartbeats of the systemd timer jobs that never reported
+  ansible.builtin.command:
+    cmd: "/usr/local/sbin/heartbeat-mark {{ item.task }} {{ item.max_age }}"
+    creates: "/var/lib/node_exporter/textfile/heartbeat_{{ item.task }}.prom"
+  loop: "{{ heartbeat_units | selectattr('stack', 'in', ['all', stack]) | list }}"
+  loop_control:
+    label: "{{ item.task }}"
 
 - name: Node Exporter | Ensure node_exporter.service.d drop-in directory exists
   ansible.builtin.file:
