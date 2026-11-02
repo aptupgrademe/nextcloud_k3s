@@ -7,8 +7,8 @@
 #
 # Despite the file name, this file holds four things: the AI notice page
 # (+ its link on the About page) and three mu-plugins - the AI footer
-# notice, performance hints (font preload, eager first image) and the
-# "Also available in" language links. All mu-plugins use the same
+# notice plus the disclaimer line, performance hints (font preload, eager
+# first image) and the "Also available in" language links. All mu-plugins use the same
 # write-.new-compare-md5-move pattern as security_muplugin.yml.
 
 - name: WordPress | Create or update AI Usage Notice page
@@ -115,6 +115,33 @@
                 esc_html__('Some text and images on this site are AI-assisted or AI-generated.'),
                 esc_url(get_permalink($page)),
                 esc_html__('Details')
+            );
+        });
+
+        /**
+         * Disclaimer line (2026-11-02): links to the "Disclaimer" section
+         * (id="disclaimer") of the imprint in the visitor's language. The
+         * imprint pages are edited in wp-admin, not by Ansible.
+         */
+        add_action('wp_footer', function () {
+            $page = get_page_by_path('impressum');
+            if (!$page) {
+                return;
+            }
+            $lang = function_exists('pll_current_language') ? (pll_current_language() ?: 'en') : 'en';
+            $id = function_exists('pll_get_post') ? (pll_get_post($page->ID, $lang) ?: $page->ID) : $page->ID;
+            $texts = [
+                'en' => ['All articles reflect my personal view only - test before you rely on them.', 'Disclaimer'],
+                'de' => ['Alle Beiträge geben nur meine persönliche Meinung wieder - bitte vor dem Einsatz selbst testen.', 'Haftungsausschluss'],
+                'fr' => ['Tous les articles reflètent uniquement mon opinion personnelle - à tester avant de s’y fier.', 'Clause de non-responsabilité'],
+                'es' => ['Todos los artículos reflejan solo mi opinión personal - pruébelo antes de confiar en ello.', 'Exención de responsabilidad'],
+            ];
+            [$text, $link] = $texts[$lang] ?? $texts['en'];
+            printf(
+                '<div style="text-align:center;font-size:11px;color:#595959;padding:0 0 6px;">%s <a href="%s#disclaimer" style="color:inherit;text-decoration:underline;">%s</a></div>',
+                esc_html($text),
+                esc_url(get_permalink($id)),
+                esc_html($link)
             );
         });
         PHPEOF
