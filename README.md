@@ -72,7 +72,7 @@ Internet
   the blog, MariaDB/Redis only accept the WordPress pods and WordPress's own egress
   is capped. (Calico ran next to it until 2026-10-19 but never enforced anything –
   see below.)
-- **WordPress 7.1** (core 7.1.3 via the nightly minor updates, on the pinned `wordpress:7.1.3` image) with PHP-FPM,
+- **WordPress 7.1** (core 7.1.4 via the nightly minor updates, on the pinned `wordpress:7.1.4` image) with PHP-FPM,
   nginx sidecar, MariaDB pod and **Redis Object Cache** pod
 - Automatic installation on first pod start via container env vars and WP-CLI
 - WordPress WP-Cron as Kubernetes CronJob (no HTTP trigger); the cron pods carry
@@ -435,10 +435,10 @@ at every playbook run. Before rolling a bump out: `scripts/check-drift.sh <playb
 ```yaml
 # Helm charts
 ingress_nginx_chart_version: "2.8.0"
-cert_manager_chart_version:  "1.21.2"
+cert_manager_chart_version:  "1.21.3"
 
 # Container images
-blog_image_wordpress: "wordpress:7.1.3-php8.5-fpm"
+blog_image_wordpress: "wordpress:7.1.4-php8.5-fpm"
 nextcloud_image_fpm:  "nextcloud:34.0.5-fpm"
 
 ```

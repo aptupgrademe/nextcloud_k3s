@@ -37,10 +37,10 @@ nextcloud_image_busybox:      "busybox:1"                    # init containers, 
 nextcloud_redis_stream:       "7"                            # AppStream module stream (EL9 default: 6 = 6.2)
 
 # --- WordPress containers -------------------------------------------------------
-blog_image_wordpress:       "wordpress:7.1.3-php8.5-fpm"
+blog_image_wordpress:       "wordpress:7.1.4-php8.5-fpm"
 blog_image_nginx:           "nginx:1.30.6-alpine"            # keep equal to nextcloud_image_nginx
 blog_image_mariadb:         "mariadb:10.11.19"               # 10.11 LTS (until Feb 2028)
-blog_image_redis:           "redis:7.4.11-alpine"            # 7.4 = last Redis 7 line
+blog_image_redis:           "redis:7.4.12-alpine"            # 7.4 = last Redis 7 line
 blog_image_mysqld_exporter: "prom/mysqld-exporter:v0.21.0"   # keep equal to mysqld_exporter_version
 blog_image_fpm_exporter:    "hipages/php-fpm_exporter:2.2.0"
 blog_image_busybox:         "busybox:1"                      # init containers, floating on purpose
@@ -52,7 +52,7 @@ node_exporter_version:         "1.12.1"   # github.com/prometheus/node_exporter/
 prometheus_version:            "3.15.1"   # github.com/prometheus/prometheus/releases
 mysqld_exporter_version:       "0.21.0"   # host MariaDB of the Nextcloud servers
 loki_version:                  "3.7.9"    # rpm.grafana.com (common_loki); github.com/grafana/loki/releases
-alloy_version:                 "1.21.2"   # rpm.grafana.com (common_loki); github.com/grafana/alloy/releases
+alloy_version:                 "1.21.3"   # rpm.grafana.com (common_loki); github.com/grafana/alloy/releases
 trivy_version:                 "0.75.0"   # github.com/aquasecurity/trivy/releases (common_trivy) - see notes
 trivy_sha256:                  "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f"   # trivy_<v>_Linux-64bit.tar.gz, from trivy_<v>_checksums.txt
 nextcloud_mariadb_repo_version: "10.11"   # MariaDB Community repo series on the Nextcloud hosts
@@ -96,6 +96,7 @@ nextcloud_mariadb_repo_version: "10.11"   # MariaDB Community repo series on the
 #   2026-10-14 added at 3.15.15 (supports Helm v4.3).
 #
 # loki_version / alloy_version (rpm.grafana.com, common_loki)
+#   2026-11-02 alloy 1.21.2 -> 1.21.3 (bug fixes, dependency updates).
 #   2026-10-26 alloy 1.21.1 -> 1.21.2 (bug fix: config value typed as secret).
 #   2026-10-22 loki 3.7.8 -> 3.7.9 (dependency updates, ingester WAL ordering
 #   fix); alloy 1.20.1 -> 1.21.1 (Go 1.27.3). The 1.21 breaking changes touch
@@ -109,6 +110,8 @@ nextcloud_mariadb_repo_version: "10.11"   # MariaDB Community repo series on the
 #   of our exporter passwords contains one (checked on all three hosts).
 #
 # trivy_version
+#   2026-11-02 0.76.1 (eMudhra CA mitigation, Go 1.27.3) released 2026-10-21 -
+#   not before 2026-11-04 (two-week rule).
 #   2026-10-19 0.75.0 (0.76.0 was 5 days old). Pinned AND checksummed on
 #   purpose: in March 2026 the Trivy release pipeline was compromised and
 #   shipped a malicious build (GHSA-69fq-xp46-6x23). Update only to a
@@ -181,6 +184,7 @@ nextcloud_mariadb_repo_version: "10.11"   # MariaDB Community repo series on the
 #   2026-10-11 26.04.3.1.1 -> 26.04.5.1.1 (patch within 26.04).
 #
 # blog_image_wordpress
+#   2026-11-02 7.1.3 -> 7.1.4 (core maintenance release; the image catches up).
 #   2026-10-26 php8.4 -> php8.5 (same WordPress 7.1.3): both Nextclouds already
 #   run 8.5. All plugins, mu-plugins and the theme linted with php:8.5-cli -
 #   no errors, only deprecations (non-canonical (double) casts in
@@ -203,6 +207,8 @@ nextcloud_mariadb_repo_version: "10.11"   # MariaDB Community repo series on the
 #   pin, same stale-cache reason as MariaDB (node was on 6ab0b6e738177, Hub's
 #   7-alpine had moved to e7723ff73d963). 7.4 is the last Redis 7 LTS line;
 #   moving to 8.x is a deliberate major upgrade, not a patch bump.
+#   2026-11-02 7.4.11-alpine -> 7.4.12-alpine (security: cluster-bus PUBLISH
+#   overflow - cluster mode only, not used here).
 #   2026-09-02 7.4.10-alpine -> 7.4.11-alpine.
 #
 # blog_wp_cli_version / blog_wp_cli_sha512
