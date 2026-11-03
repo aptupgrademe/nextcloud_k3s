@@ -56,6 +56,17 @@ ingress_admin_geo_dir: /srv/ingress-admin-geo
 # On whenever the SSH country filter is configured (fw_ssh_geo_countries).
 ingress_admin_geo_enabled: "{{ fw_ssh_geo_countries | default([]) | length > 0 }}"
 
+# HTTP/3 (QUIC) on the ingress, per host (prepared 2026-11-03, off by default).
+# The F5 controller has no HTTP/3 option, but its nginx is built with
+# --with-http_v3_module and OpenSSL 3.5 (server-side QUIC) - checked live in
+# controller 5.7.0 (nginx 1.31.7, OpenSSL 3.5.7). On = the master Ingresses get
+# "listen 443 quic" in their server-snippets, every response over HTTPS
+# carries Alt-Svc (common_k3s map $http3_alt_svc), and the firewall opens
+# UDP 443. Roll out one host at a time (blog first), check with
+# curl --http3-only. A controller upgrade must keep the module - check
+# "nginx -V" in the controller pod before bumping ingress_nginx_chart_version.
+ingress_http3_enabled: false
+
 # =============================================================================
 # Kubernetes API access for the kubernetes.core modules (k8s, k8s_info, helm,
 # helm_repository). They run on the host itself and use the K3s admin

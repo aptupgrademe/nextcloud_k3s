@@ -217,15 +217,21 @@ table inet filter {
     # -------------------------------------------------------------------------
     # Incoming: web server (ingress-nginx with hostNetwork=true)
     # -------------------------------------------------------------------------
-    # UDP 443 (QUIC/HTTP3) intentionally NOT opened: the F5 nginx-ingress
-    # controller in use (nginxinc/kubernetes-ingress, see common_k3s) has no
-    # HTTP/3 support at all (verified live 2026-08-21, curl --http3-only fails
-    # outright and the controller's Service exposes TCP 80/443 only - no UDP
-    # listener exists behind this port regardless). Re-add the udp dport 443
-    # accept rules here (and in the output chain below) if/when the ingress
-    # controller gains HTTP/3 support.
     ip  daddr {{ server_ipv4 }} tcp dport { 80, 443 } ct state new accept
     ip6 daddr {{ server_ipv6 }} tcp dport { 80, 443 } accept
+{% if ingress_http3_enabled | bool %}
+    # UDP 443 = QUIC/HTTP3 (ingress_http3_enabled). The F5 controller has no
+    # HTTP/3 option of its own, but its nginx has the module; the master
+    # Ingresses add "listen 443 quic" in their server-snippets, and the
+    # controller runs with hostNetwork, so nginx binds UDP 443 directly (no
+    # Service port needed). Replies are "established" for conntrack (UDP is
+    # tracked too), so the output chain needs no rule.
+    ip  daddr {{ server_ipv4 }} udp dport 443 ct state new accept
+    ip6 daddr {{ server_ipv6 }} udp dport 443 accept
+{% else %}
+    # UDP 443 (QUIC/HTTP3) not opened: ingress_http3_enabled is off on this
+    # host, so no quic listener exists behind the port.
+{% endif %}
 
     # Incoming: management (SSH on non-standard port)
 {% if fw_ssh_geo_countries | length > 0 %}
@@ -378,7 +384,8 @@ table inet filter {
     # No outgoing QUIC (udp dport 443): everything calling out from this host
     # (dnf, curl in Ansible tasks, the ACME client) speaks plain HTTP/TCP, and
     # nothing here is a browser that would opportunistically upgrade to
-    # HTTP/3. See the input chain above for the matching removal + rationale.
+    # HTTP/3. Incoming HTTP/3 (input chain) needs no rule here: its replies
+    # are conntrack-established.
     tcp dport { 80, 443 } ct state new accept
 
     # SMTP submission (msmtp – rkhunter/cron/dnf-automatic on both blog and nextcloud hosts)

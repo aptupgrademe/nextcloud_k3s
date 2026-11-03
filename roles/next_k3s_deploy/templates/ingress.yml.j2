@@ -33,6 +33,14 @@ metadata:
     # which "location = /login" alone never saw (found 2026-10-26 - every real
     # login bypassed the rate limit and the nc_login fail2ban jail).
     nginx.org/server-snippets: |
+{% if ingress_http3_enabled | bool %}
+      # HTTP/3 (ingress_http3_enabled): QUIC on UDP 443 next to the TLS listener the
+      # controller writes. reuseport may appear only once per address and port,
+      # so only this server block (the main site) sets it; every other quic
+      # listener on the host shares that socket set.
+      listen 443 quic reuseport;
+      listen [::]:443 quic reuseport;
+{% endif %}
       set $redirect_https 0;
       if ($scheme = http)                       { set $redirect_https 1; }
       if ($request_uri ~ "^/.well-known/")      { set $redirect_https 0; }
@@ -42,6 +50,9 @@ metadata:
         # Own location (rate limit) = the minion's location-snippets do not apply
         # here, so the login page went out without HSTS (found 2026-09-30).
         add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+{% if ingress_http3_enabled | bool %}
+        add_header Alt-Svc $http3_alt_svc always;
+{% endif %}
         limit_req zone=nc_login burst=5 nodelay;
         proxy_pass http://nextcloud.nextcloud.svc.cluster.local;
         proxy_set_header Host $host;
@@ -95,6 +106,9 @@ metadata:
       # be promoted to an enforcing Content-Security-Policy. Not yet verified
       # against a live Nextcloud instance (cvjm/sofie hosts not deployed yet).
       add_header Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss: https://{{ collabora_hostname }}; frame-src 'self' https://{{ collabora_hostname }}; frame-ancestors 'self'; base-uri 'self'; object-src 'none'" always;
+{% if ingress_http3_enabled | bool %}
+      add_header Alt-Svc $http3_alt_svc always;
+{% endif %}
     # Must match client_max_body_size (nginx-cm.yml.j2) and PHP_UPLOAD_LIMIT
     # (nextcloud-deployment.yml.j2) – all three gate the same upload.
     nginx.org/client-max-body-size: "2g"
@@ -161,6 +175,9 @@ metadata:
       add_header Referrer-Policy "no-referrer" always;
       add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
       add_header X-Robots-Tag "noindex, nofollow" always;
+{% if ingress_http3_enabled | bool %}
+      add_header Alt-Svc $http3_alt_svc always;
+{% endif %}
 {% if ingress_admin_geo_enabled | bool %}
       # Grafana login only from the countries of the SSH filter (2026-10-20,
       # same list; $ingress_admin_geo_ok comes from the ingress controller's
@@ -248,6 +265,11 @@ metadata:
     nginx.org/mergeable-ingress-type: "master"
     nginx.org/ssl-redirect: "false"
     nginx.org/server-snippets: |
+{% if ingress_http3_enabled | bool %}
+      # HTTP/3: QUIC listener; reuseport is set once, on the main site's server block.
+      listen 443 quic;
+      listen [::]:443 quic;
+{% endif %}
       set $redirect_https 0;
       if ($scheme = http)                       { set $redirect_https 1; }
       if ($request_uri ~ "^/.well-known/")      { set $redirect_https 0; }
@@ -289,6 +311,9 @@ metadata:
       add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
       add_header X-Content-Type-Options "nosniff" always;
       add_header X-Frame-Options "SAMEORIGIN" always;
+{% if ingress_http3_enabled | bool %}
+      add_header Alt-Svc $http3_alt_svc always;
+{% endif %}
 spec:
   ingressClassName: nginx
   rules:

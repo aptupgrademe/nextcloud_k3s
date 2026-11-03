@@ -39,7 +39,7 @@ Internet
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │  K3s (single-node Kubernetes)                       │    │
 │  │                                                     │    │
-│  │  nginx-ingress  (F5, hostNetwork, ports 80/443)    │    │  ← TLS, Brotli, HTTP/2
+│  │  nginx-ingress  (F5, hostNetwork, ports 80/443)    │    │  ← TLS, HTTP/2, HTTP/3 (opt.)
 │  │  cert-manager   (Let's Encrypt – auto TLS)         │    │
 │  │  NetworkPolicy: K3s policy controller (kube-router)│    │
 │  │                                                     │    │

@@ -2097,7 +2097,7 @@ oder wieder einbaut. Beides geprüft am 2026-09-14.</p>
   <tr><th>Ebene</th><th>Maßnahme</th><th>Rolle</th></tr>
   <tr>
     <td>Host-Netzwerk</td>
-    <td>nftables (<code>table inet</code>) – Default-Policy DROP, dynamische Blocklists mit Timeout, ICMP-Rate-Limit, nur 80/443/10022 offen</td>
+    <td>nftables (<code>table inet</code>) – Default-Policy DROP, dynamische Blocklists mit Timeout, ICMP-Rate-Limit, nur 80/443/10022 offen (UDP 443 für HTTP/3 zusätzlich, wenn <code>ingress_http3_enabled</code> gesetzt ist)</td>
     <td><code>common_firewall</code></td>
   </tr>
   <tr>

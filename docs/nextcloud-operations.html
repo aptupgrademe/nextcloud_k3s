@@ -2075,7 +2075,7 @@ Both verified 2026-09-14.</p>
   <tr><th>Layer</th><th>Measure</th><th>Role</th></tr>
   <tr>
     <td>Host network</td>
-    <td>nftables (<code>table inet</code>) – default policy DROP, dynamic blocklists with timeout, ICMP rate limit, only 80/443/10022 open</td>
+    <td>nftables (<code>table inet</code>) – default policy DROP, dynamic blocklists with timeout, ICMP rate limit, only 80/443/10022 open (plus UDP 443 for HTTP/3 when <code>ingress_http3_enabled</code> is set)</td>
     <td><code>common_firewall</code></td>
   </tr>
   <tr>

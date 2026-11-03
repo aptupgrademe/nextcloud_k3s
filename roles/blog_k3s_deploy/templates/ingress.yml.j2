@@ -31,6 +31,14 @@ metadata:
     # HTTPS redirect with /.well-known/ exception for ACME HTTP-01 challenges,
     # plus WordPress hardening (deny sensitive files, rate-limit wp-login.php).
     nginx.org/server-snippets: |
+{% if ingress_http3_enabled | bool %}
+      # HTTP/3 (ingress_http3_enabled): QUIC on UDP 443 next to the TLS listener the
+      # controller writes. reuseport may appear only once per address and port,
+      # so only this server block (the main site) sets it; every other quic
+      # listener on the host shares that socket set.
+      listen 443 quic reuseport;
+      listen [::]:443 quic reuseport;
+{% endif %}
       set $redirect_https 0;
       if ($scheme = http)                       { set $redirect_https 1; }
       if ($request_uri ~ "^/.well-known/")      { set $redirect_https 0; }
@@ -47,6 +55,9 @@ metadata:
         # Own location (rate limit) = the minion's location-snippets do not apply
         # here, so the login page went out without HSTS (found 2026-09-30).
         add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+{% if ingress_http3_enabled | bool %}
+        add_header Alt-Svc $http3_alt_svc always;
+{% endif %}
         limit_req zone=wp_login burst=5 nodelay;
         proxy_pass http://wordpress.wordpress.svc.cluster.local;
         proxy_set_header Host              $host;
@@ -95,6 +106,9 @@ metadata:
       # inline JSON-LD and WP block-library inline CSS need auditing before
       # this can be promoted to an enforcing Content-Security-Policy.
       add_header Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss: https:; frame-ancestors 'self'; base-uri 'self'; object-src 'none'" always;
+{% if ingress_http3_enabled | bool %}
+      add_header Alt-Svc $http3_alt_svc always;
+{% endif %}
     # Upload size
     nginx.org/client-max-body-size: "500m"
     nginx.org/proxy-read-timeout: "300s"
@@ -145,6 +159,9 @@ metadata:
       add_header Referrer-Policy "no-referrer" always;
       add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
       add_header X-Robots-Tag "noindex, nofollow" always;
+{% if ingress_http3_enabled | bool %}
+      add_header Alt-Svc $http3_alt_svc always;
+{% endif %}
 {% if ingress_admin_geo_enabled | bool %}
       # Grafana login only from the countries of the SSH filter (2026-10-20,
       # same list; $ingress_admin_geo_ok comes from the ingress controller's
@@ -217,12 +234,20 @@ metadata:
     # The header goes out over HTTPS only ($apex_hsts stays empty on HTTP;
     # nginx sends no header with an empty value). "always" puts it on the 301.
     nginx.org/server-snippets: |
+{% if ingress_http3_enabled | bool %}
+      # HTTP/3: QUIC listener; reuseport is set once, on the main site's server block.
+      listen 443 quic;
+      listen [::]:443 quic;
+{% endif %}
       set $apex_action "www";
       if ($request_uri ~ "^/.well-known/") { set $apex_action "none"; }
       if ($scheme = http)                  { set $apex_action "${apex_action}-http"; }
       set $apex_hsts "max-age=31536000; includeSubDomains; preload";
       if ($scheme = http)                  { set $apex_hsts ""; }
       add_header Strict-Transport-Security $apex_hsts always;
+{% if ingress_http3_enabled | bool %}
+      add_header Alt-Svc $http3_alt_svc always;
+{% endif %}
       if ($apex_action = "www-http")       { return 301 https://$host$request_uri; }
       if ($apex_action = "www")            { return 301 https://{{ blog_hostname }}$request_uri; }
 spec:
