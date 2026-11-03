@@ -33,6 +33,17 @@ net.core.somaxconn               = 4096
 # Match SYN backlog to somaxconn – avoids SYN drop under burst traffic.
 net.ipv4.tcp_max_syn_backlog     = 4096
 
+# --- UDP socket buffer ceiling for QUIC (HTTP/3) ---
+# QUIC runs in user space over UDP: every packet waits in the socket's
+# receive buffer until nginx reads it. With the kernel's 208 KB maximum a
+# 20 MB upload over HTTP/3 overflowed it - 284 dropped packets (Udp
+# RcvbufErrors) and 7.8 MB/s instead of 11.9 MB/s over HTTP/2 (2026-11-03).
+# This only raises the ceiling; the quic listeners ask for 4 MB themselves
+# (rcvbuf/sndbuf in the Ingress server-snippets), every other socket keeps
+# the 208 KB default. 7.5 MB is the value QUIC implementations recommend.
+net.core.rmem_max = 7500000
+net.core.wmem_max = 7500000
+
 # --- inotify limits for K3s ---
 # containerd, the kubelet and the pods watch files with inotify. The kernel
 # default of 128 instances per user is shared by all of them; once it runs

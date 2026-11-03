@@ -36,8 +36,10 @@ metadata:
       # controller writes. reuseport may appear only once per address and port,
       # so only this server block (the main site) sets it; every other quic
       # listener on the host shares that socket set.
-      listen 443 quic reuseport;
-      listen [::]:443 quic reuseport;
+      # rcvbuf/sndbuf: 4 MB socket buffers (ceiling raised in common_sysctl) -
+      # with the 208 KB default, uploads over HTTP/3 dropped packets.
+      listen 443 quic reuseport rcvbuf=4m sndbuf=4m;
+      listen [::]:443 quic reuseport rcvbuf=4m sndbuf=4m;
 {% endif %}
       set $redirect_https 0;
       if ($scheme = http)                       { set $redirect_https 1; }
