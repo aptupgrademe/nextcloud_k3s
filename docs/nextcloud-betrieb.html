@@ -284,7 +284,7 @@
 <main>
 
 <h1>Nextcloud – Betriebs&shy;dokumentation</h1>
-<p class="subtitle">Nextcloud 34 auf K3s (AlmaLinux 9) &middot; Letzte Aktualisierung: Oktober 2026</p>
+<p class="subtitle">Nextcloud 35 auf K3s (AlmaLinux 9) &middot; Letzte Aktualisierung: November 2026</p>
 
 <!-- ─────────────────────────── ÜBERBLICK ─────────────────────────────── -->
 <section id="ueberblick">
@@ -303,7 +303,7 @@
 <div class="card-grid">
   <div class="card">
     <div class="label">Nextcloud</div>
-    <div class="value">34.0.5 (nextcloud:34.0.5-fpm)</div>
+    <div class="value">35.0.2 (nextcloud:35.0.2-fpm)</div>
   </div>
   <div class="card">
     <div class="label">Betriebssystem</div>
@@ -432,7 +432,7 @@
   schreiben.</p>
 
   <h4>Container 1: <code>nextcloud-fpm</code></h4>
-  <p>Das offizielle <code>nextcloud:34.0.5-fpm</code>-Image. Führt PHP-FPM auf Port 9000 aus.
+  <p>Das offizielle <code>nextcloud:35.0.2-fpm</code>-Image. Führt PHP-FPM auf Port 9000 aus.
   Bei einem leeren <code>/var/www/html</code> installiert der Docker-Entrypoint
   Nextcloud automatisch anhand der Umgebungsvariablen (DB, Admin, Redis).
   Bei einem Update läuft <code>occ upgrade</code> automatisch.</p>
@@ -870,21 +870,21 @@ k3s kubectl get secret nextcloud-secrets -n nextcloud \
 </p>
 
 <pre><code># inventory/group_vars/all/versions.yml
-nextcloud_image_fpm:       "nextcloud:34.0.5-fpm"       # Nextcloud PHP-FPM
+nextcloud_image_fpm:       "nextcloud:35.0.2-fpm"       # Nextcloud PHP-FPM
 nextcloud_image_nginx:     "nginx:1.30.6-alpine"        # nginx Sidecar
-nextcloud_image_collabora: "collabora/code:26.04.5.1.1" # Collabora CODE
+nextcloud_image_collabora: "collabora/code:26.04.5.2.1" # Collabora CODE
 nextcloud_image_busybox:   "busybox:1"                  # Init-Container</code></pre>
 
 <h3>Tag-Strategie</h3>
 <table>
   <tr><th>Tag-Format</th><th>Bedeutung</th><th>Beispiel</th></tr>
   <tr>
-    <td><code>34.0.5-fpm</code></td>
+    <td><code>35.0.2-fpm</code></td>
     <td>Exakter Nextcloud-Patch-Pin; wird in <code>versions.yml</code> hochgesetzt, sobald ein neuerer Build geprüft ist (Renovate schlägt es als Pull Request vor)</td>
-    <td><code>nextcloud:34.0.5-fpm</code> (aktuell)</td>
+    <td><code>nextcloud:35.0.2-fpm</code> (aktuell)</td>
   </tr>
   <tr>
-    <td><code>35.0.0-fpm</code></td>
+    <td><code>36.0.0-fpm</code></td>
     <td>Nächste Major-Version – muss explizit gesetzt werden</td>
     <td>Änderung in <code>versions.yml</code> nötig (Renovate: nur nach Freigabe)</td>
   </tr>
@@ -894,18 +894,18 @@ nextcloud_image_busybox:   "busybox:1"                  # Init-Container</code><
     <td><code>nginx:1.30.6-alpine</code> (aktuell)</td>
   </tr>
   <tr>
-    <td><code>26.04.5.1.1</code></td>
+    <td><code>26.04.5.2.1</code></td>
     <td>Collabora-Release-Patch; wird regelmäßig gegen Docker Hub geprüft</td>
-    <td><code>collabora/code:26.04.5.1.1</code> (aktuell)</td>
+    <td><code>collabora/code:26.04.5.2.1</code> (aktuell)</td>
   </tr>
 </table>
 
 <div class="callout callout-warn">
   <strong>Rebuild ohne Tag-Änderung</strong>
-  Wenn Docker Hub <code>nextcloud:34.0.5-fpm</code> unter demselben Tag neu baut
+  Wenn Docker Hub <code>nextcloud:35.0.2-fpm</code> unter demselben Tag neu baut
   (z.B. ein Base-Image-Security-Patch), passiert auf dem Server <em>nichts
   automatisch</em>. Der Tag ist lokal gecacht. Manuell auffrischen:
-  <pre style="margin-top:8px"><code>crictl pull docker.io/library/nextcloud:34.0.5-fpm
+  <pre style="margin-top:8px"><code>crictl pull docker.io/library/nextcloud:35.0.2-fpm
 k3s kubectl rollout restart deployment/nextcloud -n nextcloud</code></pre>
 </div>
 </section>
@@ -1468,7 +1468,7 @@ k3s kubectl get pods -n nextcloud</code></pre>
 
 <h3>Container-Update: Rebuild innerhalb desselben Tags</h3>
 <p>
-  Wenn Docker Hub <code>nextcloud:34.0.5-fpm</code> selbst neu baut (z.B. ein
+  Wenn Docker Hub <code>nextcloud:35.0.2-fpm</code> selbst neu baut (z.B. ein
   Base-Image-Security-Patch) und der Tag im Ansible unverändert bleibt:
 </p>
 <p><strong>Am einfachsten:</strong> <code>nextcloud-update.yml</code> erledigt genau das für jedes Image jedes Deployments &ndash; ziehen, Digest mit den laufenden Pods vergleichen, nur Neugebautes neu starten, danach <code>occ upgrade</code> und <code>app:update</code>:</p>
@@ -1484,7 +1484,7 @@ k3s kubectl get pods -n nextcloud</code></pre>
 <p>Von Hand sind es dieselben Schritte:</p>
 <ol class="steps">
   <li>Neues Image manuell pullen:
-    <pre><code>crictl pull docker.io/library/nextcloud:34.0.5-fpm</code></pre>
+    <pre><code>crictl pull docker.io/library/nextcloud:35.0.2-fpm</code></pre>
   </li>
   <li>Pod neu starten (nutzt jetzt das frisch gepullte Image):
     <pre><code>k3s kubectl rollout restart deployment/nextcloud -n nextcloud
@@ -1498,9 +1498,9 @@ k3s kubectl rollout status  deployment/nextcloud -n nextcloud --timeout=300s</co
 <h3>Container-Update: Versionssprung (Patch oder Major)</h3>
 <p>
   <code>nextcloud_image_fpm</code> ist auf einen exakten Patch gepinnt, nicht auf
-  einen gleitenden Major-Tag – ein Sprung auf einen neueren Patch (z.B. 34.0.5 →
-  34.0.6) läuft daher genauso ab wie ein Sprung auf eine neue Major-Version (z.B.
-  34 → 35): zuerst <code>https://hub.docker.com/_/nextcloud/tags</code> (Filter:
+  einen gleitenden Major-Tag – ein Sprung auf einen neueren Patch (z.B. 35.0.2 →
+  35.0.3) läuft daher genauso ab wie ein Sprung auf eine neue Major-Version (z.B.
+  35 → 36): zuerst <code>https://hub.docker.com/_/nextcloud/tags</code> (Filter:
   <code>*-fpm</code>) auf den gewünschten Build prüfen, dann:
 </p>
 
@@ -1512,7 +1512,7 @@ k3s kubectl rollout status  deployment/nextcloud -n nextcloud --timeout=300s</co
 
 <ol class="steps">
   <li>Tag in <code>inventory/group_vars/all/versions.yml</code> ändern:
-    <pre><code>nextcloud_image_fpm: "nextcloud:34.0.5-fpm"</code></pre>
+    <pre><code>nextcloud_image_fpm: "nextcloud:35.0.2-fpm"</code></pre>
   </li>
   <li>Playbook ausführen – K3s zieht das neue Image automatisch und rollt den Pod durch:
     <pre><code>ansible-playbook nextcloud-k3s.yml --limit test --ask-vault-pass</code></pre>

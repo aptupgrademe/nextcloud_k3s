@@ -63,7 +63,7 @@ Internet
 
 ### Nextcloud & WordPress
 
-- **Nextcloud 34** with PHP-FPM, nginx sidecar, Redis (host service) and MariaDB 10.11
+- **Nextcloud 35** with PHP-FPM, nginx sidecar, Redis (host service) and MariaDB 10.11
 - **Collabora CODE** (online office) with WOPI integration
 - **NetworkPolicies on both stacks**, enforced by K3s's embedded policy controller
   (kube-router): on Nextcloud, Collabora can never reach MariaDB/Redis directly, and
@@ -439,7 +439,7 @@ cert_manager_chart_version:  "1.21.3"
 
 # Container images
 blog_image_wordpress: "wordpress:7.1.4-php8.5-fpm"
-nextcloud_image_fpm:  "nextcloud:34.0.5-fpm"
+nextcloud_image_fpm:  "nextcloud:35.0.2-fpm"
 
 ```
 

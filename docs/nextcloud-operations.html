@@ -284,7 +284,7 @@
 <main>
 
 <h1>Nextcloud – Operations Guide</h1>
-<p class="subtitle">Nextcloud 34 on K3s (AlmaLinux 9) &middot; Last updated: October 2026</p>
+<p class="subtitle">Nextcloud 35 on K3s (AlmaLinux 9) &middot; Last updated: November 2026</p>
 
 <!-- ─────────────────────────── OVERVIEW ─────────────────────────────── -->
 <section id="ueberblick">
@@ -303,7 +303,7 @@
 <div class="card-grid">
   <div class="card">
     <div class="label">Nextcloud</div>
-    <div class="value">34.0.5 (nextcloud:34.0.5-fpm)</div>
+    <div class="value">35.0.2 (nextcloud:35.0.2-fpm)</div>
   </div>
   <div class="card">
     <div class="label">Operating System</div>
@@ -431,7 +431,7 @@
   permissions. Without this step, Nextcloud cannot write anything to <code>/var/www/html</code>.</p>
 
   <h4>Container 1: <code>nextcloud-fpm</code></h4>
-  <p>The official <code>nextcloud:34.0.5-fpm</code> image. Runs PHP-FPM on port 9000.
+  <p>The official <code>nextcloud:35.0.2-fpm</code> image. Runs PHP-FPM on port 9000.
   If <code>/var/www/html</code> is empty, the Docker entrypoint automatically installs
   Nextcloud based on the environment variables (DB, Admin, Redis).
   During an update, <code>occ upgrade</code> runs automatically.</p>
@@ -868,21 +868,21 @@ k3s kubectl get secret nextcloud-secrets -n nextcloud \
 </p>
 
 <pre><code># inventory/group_vars/all/versions.yml
-nextcloud_image_fpm:       "nextcloud:34.0.5-fpm"       # Nextcloud PHP-FPM
+nextcloud_image_fpm:       "nextcloud:35.0.2-fpm"       # Nextcloud PHP-FPM
 nextcloud_image_nginx:     "nginx:1.30.6-alpine"        # nginx Sidecar
-nextcloud_image_collabora: "collabora/code:26.04.5.1.1" # Collabora CODE
+nextcloud_image_collabora: "collabora/code:26.04.5.2.1" # Collabora CODE
 nextcloud_image_busybox:   "busybox:1"                  # Init container</code></pre>
 
 <h3>Tag Strategy</h3>
 <table>
   <tr><th>Tag Format</th><th>Meaning</th><th>Example</th></tr>
   <tr>
-    <td><code>34.0.5-fpm</code></td>
+    <td><code>35.0.2-fpm</code></td>
     <td>Exact Nextcloud patch pin; bumped in <code>versions.yml</code> once a newer build is checked (Renovate proposes it as a pull request)</td>
-    <td><code>nextcloud:34.0.5-fpm</code> (current)</td>
+    <td><code>nextcloud:35.0.2-fpm</code> (current)</td>
   </tr>
   <tr>
-    <td><code>35.0.0-fpm</code></td>
+    <td><code>36.0.0-fpm</code></td>
     <td>Next major version – must be set explicitly</td>
     <td>Change required in <code>versions.yml</code> (Renovate: only after approval)</td>
   </tr>
@@ -892,18 +892,18 @@ nextcloud_image_busybox:   "busybox:1"                  # Init container</code><
     <td><code>nginx:1.30.6-alpine</code> (current)</td>
   </tr>
   <tr>
-    <td><code>26.04.5.1.1</code></td>
+    <td><code>26.04.5.2.1</code></td>
     <td>Collabora release patch; checked periodically against Docker Hub</td>
-    <td><code>collabora/code:26.04.5.1.1</code> (current)</td>
+    <td><code>collabora/code:26.04.5.2.1</code> (current)</td>
   </tr>
 </table>
 
 <div class="callout callout-warn">
   <strong>Rebuild Without Tag Change</strong>
-  If Docker Hub rebuilds <code>nextcloud:34.0.5-fpm</code> under the same tag
+  If Docker Hub rebuilds <code>nextcloud:35.0.2-fpm</code> under the same tag
   (e.g. a base-image security patch), <em>nothing happens automatically</em> on the
   server. The tag is cached locally. Force a refresh:
-  <pre style="margin-top:8px"><code>crictl pull docker.io/library/nextcloud:34.0.5-fpm
+  <pre style="margin-top:8px"><code>crictl pull docker.io/library/nextcloud:35.0.2-fpm
 k3s kubectl rollout restart deployment/nextcloud -n nextcloud</code></pre>
 </div>
 </section>
@@ -1458,7 +1458,7 @@ k3s kubectl get pods -n nextcloud</code></pre>
 
 <h3>Container Update: Rebuild Within the Same Tag</h3>
 <p>
-  When Docker Hub rebuilds <code>nextcloud:34.0.5-fpm</code> itself (e.g. a
+  When Docker Hub rebuilds <code>nextcloud:35.0.2-fpm</code> itself (e.g. a
   base-image security patch) and the tag in Ansible remains unchanged:
 </p>
 <p><strong>Easiest:</strong> <code>nextcloud-update.yml</code> does exactly this for every image of every Deployment &ndash; pull, compare the digest with the running pods, restart only what was rebuilt, then <code>occ upgrade</code> and <code>app:update</code>:</p>
@@ -1474,7 +1474,7 @@ k3s kubectl get pods -n nextcloud</code></pre>
 <p>By hand, the same steps:</p>
 <ol class="steps">
   <li>Pull new image manually:
-    <pre><code>crictl pull docker.io/library/nextcloud:34.0.5-fpm</code></pre>
+    <pre><code>crictl pull docker.io/library/nextcloud:35.0.2-fpm</code></pre>
   </li>
   <li>Restart pod (now uses the freshly pulled image):
     <pre><code>k3s kubectl rollout restart deployment/nextcloud -n nextcloud
@@ -1488,8 +1488,8 @@ k3s kubectl rollout status  deployment/nextcloud -n nextcloud --timeout=300s</co
 <h3>Container Update: Version Bump (Patch or Major)</h3>
 <p>
   <code>nextcloud_image_fpm</code> is pinned to an exact patch, not a floating
-  major tag – so bumping to a newer patch (e.g. 34.0.5 → 34.0.6) or a new major
-  version (e.g. 34 → 35) both work the same way: check
+  major tag – so bumping to a newer patch (e.g. 35.0.2 → 35.0.3) or a new major
+  version (e.g. 35 → 36) both work the same way: check
   <code>https://hub.docker.com/_/nextcloud/tags</code> (filter: <code>*-fpm</code>)
   for the build to move to, then:
 </p>
@@ -1502,7 +1502,7 @@ k3s kubectl rollout status  deployment/nextcloud -n nextcloud --timeout=300s</co
 
 <ol class="steps">
   <li>Change tag in <code>inventory/group_vars/all/versions.yml</code>:
-    <pre><code>nextcloud_image_fpm: "nextcloud:34.0.5-fpm"</code></pre>
+    <pre><code>nextcloud_image_fpm: "nextcloud:35.0.2-fpm"</code></pre>
   </li>
   <li>Run playbook – K3s pulls the new image automatically and rolls out the pod:
     <pre><code>ansible-playbook nextcloud-k3s.yml --limit test --ask-vault-pass</code></pre>
