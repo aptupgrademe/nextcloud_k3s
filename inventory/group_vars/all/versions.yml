@@ -53,8 +53,8 @@ prometheus_version:            "3.15.1"   # github.com/prometheus/prometheus/rel
 mysqld_exporter_version:       "0.21.0"   # host MariaDB of the Nextcloud servers
 loki_version:                  "3.7.9"    # rpm.grafana.com (common_loki); github.com/grafana/loki/releases
 alloy_version:                 "1.21.3"   # rpm.grafana.com (common_loki); github.com/grafana/alloy/releases
-trivy_version:                 "0.75.0"   # github.com/aquasecurity/trivy/releases (common_trivy) - see notes
-trivy_sha256:                  "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f"   # trivy_<v>_Linux-64bit.tar.gz, from trivy_<v>_checksums.txt
+trivy_version:                 "0.76.1"   # github.com/aquasecurity/trivy/releases (common_trivy) - see notes
+trivy_sha256:                  "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0"   # trivy_<v>_Linux-64bit.tar.gz, from trivy_<v>_checksums.txt
 nextcloud_mariadb_repo_version: "10.11"   # MariaDB Community repo series on the Nextcloud hosts
 
 
@@ -110,8 +110,8 @@ nextcloud_mariadb_repo_version: "10.11"   # MariaDB Community repo series on the
 #   of our exporter passwords contains one (checked on all three hosts).
 #
 # trivy_version
-#   2026-11-02 0.76.1 (eMudhra CA mitigation, Go 1.27.3) released 2026-10-21 -
-#   not before 2026-11-04 (two-week rule).
+#   2026-11-04 0.75.0 -> 0.76.1 (eMudhra CA mitigation, Go 1.27.3; released
+#   2026-10-21, so exactly at the end of the two-week rule).
 #   2026-10-19 0.75.0 (0.76.0 was 5 days old). Pinned AND checksummed on
 #   purpose: in March 2026 the Trivy release pipeline was compromised and
 #   shipped a malicious build (GHSA-69fq-xp46-6x23). Update only to a
