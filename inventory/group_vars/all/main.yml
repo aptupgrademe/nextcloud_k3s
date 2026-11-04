@@ -72,10 +72,14 @@ ingress_admin_geo_enabled: "{{ fw_ssh_geo_countries | default([]) | length > 0 }
 # on the 8-worker host: 21 of 197 downloads with three client stacks, 0 of 200
 # after ending that worker, HTTP/2 not affected. nginx 1.31.7 fixes reloads only
 # with quic_bpf, which needs CAP_BPF and CAP_NET_ADMIN on this hostNetwork pod.
-# So: off on the Nextcloud hosts (websockets, large transfers), on for the blog.
+# So: off on all hosts. The Nextcloud hosts have websockets and large transfers;
+# the blog would need worker_shutdown_timeout, and a limit that was tested only
+# once is not enough for what HTTP/3 brings there. The switch stays: re-check
+# when nginx can do reloads without quic_bpf (nginx issue 1937).
 # To switch off, remove the Ingress side first (next_k3s_deploy / blog_k3s_deploy),
 # then common_k3s and common_firewall: without the map in common_k3s, the
-# Ingress snippets refer to an unknown $http3_alt_svc.
+# Ingress snippets refer to an unknown $http3_alt_svc. To switch on, the other
+# way round: common_k3s and common_firewall first, then the Ingress side.
 ingress_http3_enabled: false
 
 # worker_shutdown_timeout of the ingress nginx, empty = no limit. At the end of

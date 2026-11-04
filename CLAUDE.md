@@ -111,8 +111,8 @@ and in the README. This file only points the way and lists the traps.
   "shutting down" and still holds the shared UDP 443 sockets; about 1 of 8 QUIC
   connections then hung on an 8-worker host (`ps -eo args | grep 'shutting down'`).
   HTTP/2 is not affected. Upstream fixes it only with `quic_bpf`, so HTTP/3 stays off
-  on the Nextcloud hosts. Test with several client stacks and many runs: 8 clean
-  downloads proved nothing, and my first suspect (the client) was wrong.
+  on all hosts (the switch `ingress_http3_enabled` remains). Test with several
+  client stacks and many runs: 8 clean downloads proved nothing, and my first suspect (the client) was wrong.
 - In PromQL, `sum` over a container name adds old and new pods during a rollout
   – aggregate `by (pod)`.
 
