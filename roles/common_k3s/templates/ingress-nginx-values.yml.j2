@@ -24,6 +24,10 @@ controller:
 
   config:
     entries:
+{% if ingress_worker_shutdown_timeout %}
+      # Ends workers still "shutting down" after a reload, see group_vars/all/main.yml.
+      worker-shutdown-timeout: "{{ ingress_worker_shutdown_timeout }}"
+{% endif %}
       # --- Access log: the default combined format plus two fields ---
       # Content-Type and request length (headers + body) at the END of the
       # line, so every parser that reads from the start keeps working

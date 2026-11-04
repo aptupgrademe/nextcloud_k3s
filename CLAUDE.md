@@ -107,6 +107,12 @@ and in the README. This file only points the way and lists the traps.
   changed config or rotated password only arrives at the next accidental restart.
 - **NetworkPolicies are enforced by K3s's own controller** (kube-router). Calico
   never matched a pod here (Flannel creates `veth*`, Felix only handles `cali*`).
+- **HTTP/3 and reloads:** a worker kept alive by a long-lived connection stays in
+  "shutting down" and still holds the shared UDP 443 sockets; about 1 of 8 QUIC
+  connections then hung on an 8-worker host (`ps -eo args | grep 'shutting down'`).
+  HTTP/2 is not affected. Upstream fixes it only with `quic_bpf`, so HTTP/3 stays off
+  on the Nextcloud hosts. Test with several client stacks and many runs: 8 clean
+  downloads proved nothing, and my first suspect (the client) was wrong.
 - In PromQL, `sum` over a container name adds old and new pods during a rollout
   – aggregate `by (pod)`.
 

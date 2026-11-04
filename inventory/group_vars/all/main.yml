@@ -65,7 +65,22 @@ ingress_admin_geo_enabled: "{{ fw_ssh_geo_countries | default([]) | length > 0 }
 # UDP 443. Roll out one host at a time (blog first), check with
 # curl --http3-only. A controller upgrade must keep the module - check
 # "nginx -V" in the controller pod before bumping ingress_nginx_chart_version.
+#
+# Found 2026-11-04: after a reload, a worker kept alive by a long-lived
+# connection (notify_push websocket) stays in "shutting down" without limit and
+# still holds the shared UDP 443 sockets. About 1 of 8 QUIC connections then hung
+# on the 8-worker host: 21 of 197 downloads with three client stacks, 0 of 200
+# after ending that worker, HTTP/2 not affected. nginx 1.31.7 fixes reloads only
+# with quic_bpf, which needs CAP_BPF and CAP_NET_ADMIN on this hostNetwork pod.
+# So: off on the Nextcloud hosts (websockets, large transfers), on for the blog.
+# To switch off, remove the Ingress side first (next_k3s_deploy / blog_k3s_deploy),
+# then common_k3s and common_firewall: without the map in common_k3s, the
+# Ingress snippets refer to an unknown $http3_alt_svc.
 ingress_http3_enabled: false
+
+# worker_shutdown_timeout of the ingress nginx, empty = no limit. At the end of
+# it, connections of old workers are cut, including running downloads and uploads.
+ingress_worker_shutdown_timeout: ""
 
 # =============================================================================
 # Kubernetes API access for the kubernetes.core modules (k8s, k8s_info, helm,
