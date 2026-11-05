@@ -106,7 +106,15 @@
             body.home .above-footer-widget-section,
             body.home #secondary .widget:has(.wp-block-latest-posts),
             body.home #secondary .widget:has(.wp-block-archives-list) { display: none !important; }
-        }';
+        }
+
+        /* Desktop-Startseite: Tab "Popular" ausgeblendet. Das Theme sortiert ihn
+           nach Kommentaren, die hier abgeschaltet sind - die Liste sagte also
+           nichts aus (es wird auch nichts gezählt). Die zwei übrigen Tabs
+           teilen sich die Breite. */
+        body.home .aft-main-banner-section .tab-popular { display: none !important; }
+        body.home .aft-main-banner-section .three-column-tabs .tab-warpper { display: flex !important; }
+        body.home .aft-main-banner-section .three-column-tabs .tab-warpper > li { flex: 1 1 0 !important; width: auto !important; }';
         $existing = wp_get_custom_css_post('morenews');
         if ($existing) {
             wp_update_post(['ID' => $existing->ID, 'post_content' => $css]);
