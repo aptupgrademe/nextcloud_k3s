@@ -210,7 +210,9 @@
          * - The slider runs at full width on desktop since 2026-11-05 (custom
          *   CSS), but the theme says sizes="590px", so browsers would fetch and
          *   stretch the 590 px file. The small value below 1025 px keeps the
-         *   hidden eager copy on phones as light as possible.
+         *   hidden eager copy on phones as light as possible. The theme also
+         *   asks for its 590 px crop, whose srcset ends at 825 px; the full
+         *   size offers up to 1536 px.
          * - The site logo is shown at most 75 px wide (custom CSS), but its
          *   sizes attribute claimed 913 px, so browsers fetched the 913 px
          *   file (64 KB) instead of the 300 px one (16 KB) - and the theme's
@@ -264,6 +266,10 @@
             $attr['fetchpriority'] = 'high';
             return $attr;
         }, 20, 3);
+
+        add_filter('post_thumbnail_size', function ($size) {
+            return (is_home() && !in_the_loop() && $size === 'morenews-medium') ? 'full' : $size;
+        });
 
         add_filter('wp_kses_allowed_html', function ($tags, $context) {
             if ($context === 'post' && isset($tags['img'])) {
