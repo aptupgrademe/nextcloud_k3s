@@ -32,7 +32,7 @@
         <h3>Text</h3>
         <p>Every post here comes from something I actually did &ndash; a real homelab project, a real Ansible run, a real troubleshooting session. AI tools (mainly <a href="https://www.anthropic.com/claude" target="_blank" rel="noopener">Claude</a>, sometimes ChatGPT) help me draft, structure, and edit the writing. I review, correct, and personally stand behind everything that gets published.</p>
         <h3>Images</h3>
-        <p>Some images on this site are AI-generated or AI-edited &ndash; for example the comic-style portrait on the <a href="/about/">About</a> page, and some illustrative graphics created with tools like FLUX/ComfyUI. Screenshots, terminal output, dashboards, and API responses shown in posts are real and unedited unless a post says otherwise.</p>
+        <p>Some images on this site are AI-generated or AI-edited &ndash; for example the comic-style portrait on the <a href="/about/">About</a> page, and some illustrative graphics created with tools like FLUX/ComfyUI. Screenshots, terminal output, dashboards, and API responses shown in posts are real. I black out or blur private details such as addresses, keys and names; beyond that they are unedited unless a post says otherwise.</p>
         <p style="font-size:13px;color:#888;">This notice is provided for transparency, in line with Art. 50 of the EU AI Act on labelling AI-generated and AI-assisted content.</p>';
         $existing = get_page_by_path($slug);
         if ($existing && trim($existing->post_content) === trim($content) && $existing->post_title === 'AI Usage Notice') {
@@ -110,11 +110,20 @@
             if (!$page) {
                 return;
             }
+            $lang = function_exists('pll_current_language') ? (pll_current_language() ?: 'en') : 'en';
+            $id = function_exists('pll_get_post') ? (pll_get_post($page->ID, $lang) ?: $page->ID) : $page->ID;
+            $texts = [
+                'en' => ['Some text and images on this site are AI-assisted or AI-generated.', 'Details'],
+                'de' => ['Einige Texte und Bilder auf dieser Seite sind KI-gestützt oder KI-generiert.', 'Details'],
+                'fr' => ['Certains textes et images de ce site sont assistés ou générés par IA.', 'Détails'],
+                'es' => ['Parte de los textos e imágenes de este sitio está asistida o generada por IA.', 'Detalles'],
+            ];
+            [$text, $link] = $texts[$lang] ?? $texts['en'];
             printf(
                 '<div style="text-align:center;font-size:11px;color:#595959;padding:6px 0;">%s <a href="%s" style="color:inherit;text-decoration:underline;">%s</a></div>',
-                esc_html__('Some text and images on this site are AI-assisted or AI-generated.'),
-                esc_url(get_permalink($page)),
-                esc_html__('Details')
+                esc_html($text),
+                esc_url(get_permalink($id)),
+                esc_html($link)
             );
         });
 
