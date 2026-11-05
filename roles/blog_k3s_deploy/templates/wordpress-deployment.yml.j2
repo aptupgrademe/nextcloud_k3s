@@ -182,6 +182,11 @@ spec:
             // DISALLOW_FILE_MODS is deliberately NOT set: it would also
             // block the plugin auto-updates this site relies on.
             define('DISALLOW_FILE_EDIT', true);
+            // No pll_language cookie (1 year, set by JavaScript for every
+            // visitor): the language comes from the URL and browser detection
+            // is off, so nothing needs it, and the privacy policy promises
+            // cookies only on login (found 2026-11-05).
+            define('PLL_COOKIE', false);
         ports:
         - containerPort: 9000
           name: fpm
