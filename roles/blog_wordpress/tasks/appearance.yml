@@ -108,15 +108,20 @@
             body.home #secondary .widget:has(.wp-block-archives-list) { display: none !important; }
         }
 
-        /* Desktop-Startseite: Main News, Latest/Popular/Update, Trending Now und
-           der Sidebar-Block "Recent Posts" zeigten nur immer wieder die neuesten
+        /* Desktop-Startseite: Latest/Popular/Update, Trending Now und der
+           Sidebar-Block "Recent Posts" zeigten nur immer wieder die neuesten
            Beiträge (ohne gesetzte Kategorie nimmt das Theme einfach die neuesten;
            Popular sortierte nach Kommentaren, die hier abgeschaltet sind -
-           gezählt wird nichts). Es bleiben das Laufband und die Beitragsliste
-           mit Bildern. Featured Posts und "You may have missed" sind per
-           Theme-Schalter aus (nächster Task). */
-        body.home .aft-main-banner-wrapper,
-        body.home #secondary .widget:has(.wp-block-latest-posts) { display: none !important; }';
+           gezählt wird nichts). Es bleiben das Laufband, der Slider "Main News"
+           über die volle Breite und die Beitragsliste. Featured Posts und "You
+           may have missed" sind per Theme-Schalter aus (nächster Task). */
+        body.home .aft-main-banner-section .aft-thumb-part,
+        body.home .aft-main-banner-section .aft-trending-part,
+        body.home #secondary .widget:has(.wp-block-latest-posts) { display: none !important; }
+        @media screen and (min-width: 1025px) {
+            body.home .aft-main-banner-section .aft-slider-part { flex: 0 0 100% !important; width: 100% !important; max-width: 100% !important; }
+            body.home .aft-main-banner-section.aft-banner-layout-3 .af-banner-carousel .read-img.read-bg-img { height: 560px !important; }
+        }';
         $existing = wp_get_custom_css_post('morenews');
         if ($existing) {
             wp_update_post(['ID' => $existing->ID, 'post_content' => $css]);

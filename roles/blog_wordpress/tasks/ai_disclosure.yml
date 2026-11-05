@@ -207,6 +207,10 @@
          *   (normal priority, so on a phone the hidden copy does not compete).
          *   Banner images are rendered before the main loop starts, which is
          *   how in_the_loop() tells the two apart.
+         * - The slider runs at full width on desktop since 2026-11-05 (custom
+         *   CSS), but the theme says sizes="590px", so browsers would fetch and
+         *   stretch the 590 px file. The small value below 1025 px keeps the
+         *   hidden eager copy on phones as light as possible.
          * - The site logo is shown at most 75 px wide (custom CSS), but its
          *   sizes attribute claimed 913 px, so browsers fetched the 913 px
          *   file (64 KB) instead of the 300 px one (16 KB) - and the theme's
@@ -247,6 +251,7 @@
                 return $attr;
             }
             if (is_home() && !in_the_loop()) {
+                $attr['sizes'] = '(max-width: 1024px) 150px, 1280px';
                 static $banner_done = false;
                 if (!$banner_done) {
                     $banner_done = true;
