@@ -1,7 +1,7 @@
 ---
 # Part of blog_wordpress (see main.yml): how uploaded images are stored.
 #
-# 2026-10-19: WhatsApp showed the site logo (Superman) instead of the featured
+# 2026-10-19: WhatsApp showed the site logo instead of the featured
 # image when part 3 of the Ansible tour was shared. Link previews ignore an
 # og:image above ~300 KB and fall back to the first <img> on the page; 128 of
 # 468 posts had such a featured image (WebP, up to 945 KB). The existing ones
