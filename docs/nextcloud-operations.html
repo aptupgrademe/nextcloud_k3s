@@ -244,7 +244,7 @@
 </style>
 </head>
 <body>
-<p style="background:#fff3cd;color:#333;padding:10px;border:1px solid #d6b656"><strong>Note:</strong> This repository was split from <code>www_k3s</code> (tag <code>final-before-split</code>). References to the blog, WordPress or the <code>stack</code> variable describe that former setup and will be removed in a later revision.</p>
+<p style="background:#fff3cd;color:#333;padding:10px;border:1px solid #d6b656"><strong>Note:</strong> This repository was split from <code>www_k3s</code> (tag <code>final-before-split</code>). The blog moved to its own repository, <code>www_hugo</code>, and no longer runs on K3s. Remaining mentions of the blog or WordPress are history: they name where a finding was first made.</p>
 
 <!-- ═══════════════════════════════ SIDEBAR ═══════════════════════════════ -->
 <nav>
@@ -704,7 +704,7 @@ kubectl -n default run nptest --image=busybox:1 --restart=Never --rm -i -- \
   predictable and has both directions. The <code>nextcloud-cron</code> pods are
   not selected, so the startup race of the WordPress guide does not apply. (The blog has
   its own policies for WordPress, MariaDB and Redis since 2026-08-20, see the
-  WordPress operations guide.)
+  WordPress operations guide (archived repository <code>www_k3s</code>).)
 </div>
 <div class="callout callout-warn">
   <strong>Adding a new pod/service to the <code>nextcloud</code> namespace?</strong>
@@ -1390,13 +1390,6 @@ journalctl -u mysqld_exporter -n 50
 # Fetch metrics directly (test)
 curl -s http://127.0.0.1:9104/metrics | grep mysql_up</code></pre>
 
-<div class="callout callout-info">
-  <strong>Adjust Grafana Hostname When Switching Scenario</strong>
-  When the server is switched from Nextcloud to WordPress (blog), the
-  <code>grafana_proxy_hostname</code> in <code>host_vars/&lt;host&gt;/vars.yml</code>
-  must be changed to the blog hostname – otherwise the /grafana/ path
-  points to the wrong ingress.
-</div>
 
 <h3>Log Rotation (MariaDB on the host)</h3>
 <p>
@@ -2009,7 +2002,7 @@ rm -f ~/.ansible/cp/*</code></pre>
 
 <h3>Compression &amp; TLS Tuning</h3>
 <p>
-  gzip compression is configured at the nginx-ingress level and applies to all domains (Nextcloud and WordPress). Brotli is <strong>not</strong> available — the F5 nginx-ingress OSS image ships no ngx_brotli module — and OCSP stapling is not used, because Let's Encrypt has retired OCSP (current certificates carry no OCSP URI). gzip (level 6) covers text, HTML, JSON, JS, CSS and SVG.
+  gzip compression is configured at the nginx-ingress level and applies to all domains. Brotli is <strong>not</strong> available — the F5 nginx-ingress OSS image ships no ngx_brotli module — and OCSP stapling is not used, because Let's Encrypt has retired OCSP (current certificates carry no OCSP URI). gzip (level 6) covers text, HTML, JSON, JS, CSS and SVG.
 </p>
 <pre><code># Verify gzip compression (Brotli not available on this ingress)
 curl -sk --resolve nextcloud.example.com:443:127.0.0.1 \
@@ -2081,7 +2074,7 @@ Both verified 2026-09-14.</p>
   </tr>
   <tr>
     <td>SSH</td>
-    <td>Port 10022, key-only (<code>PermitRootLogin without-password</code>), hardened sshd_config, Fail2Ban, <code>sshd_config.d/00-hardening.conf</code> pins key-only ahead of provider drop-ins (Contabo's <code>50-cloud-init.conf</code> otherwise re-enabled passwords, found 2026-09-30). It also pins <code>X11Forwarding no</code>, which AlmaLinux’s <code>50-redhat.conf</code> otherwise set to <code>yes</code> (found 2026-10-02). Optional country filter for port 10022 (<code>fw_ssh_geo_countries</code>, e.g. <code>[DE]</code>; enabled on the blog and on cvjm since 2026-10-02, not on sofie; see the WordPress operations doc)</td>
+    <td>Port 10022, key-only (<code>PermitRootLogin without-password</code>), hardened sshd_config, Fail2Ban, <code>sshd_config.d/00-hardening.conf</code> pins key-only ahead of provider drop-ins (the provider drop-in <code>50-cloud-init.conf</code> otherwise re-enabled passwords, found 2026-09-30). It also pins <code>X11Forwarding no</code>, which AlmaLinux’s <code>50-redhat.conf</code> otherwise set to <code>yes</code> (found 2026-10-02). Optional country filter for port 10022 (<code>fw_ssh_geo_countries</code>, e.g. <code>[DE]</code>; enabled on the blog and on cvjm since 2026-10-02, not on sofie; see the WordPress operations doc)</td>
     <td><code>common_ssh</code>, <code>common_fail2ban</code>, <code>common_firewall</code></td>
   </tr>
   <tr>
@@ -2235,7 +2228,7 @@ Both verified 2026-09-14.</p>
   policy; the <code>nextcloud-cron</code> pods are not selected, so the
   wordpress-side "policy startup race" finding still does not apply. If a
   policy restricting the cron pods' own egress is ever added, revisit that
-  finding (see the WordPress ops guide's WP-Cron section) first.
+  finding (see the WordPress operations guide (archived repository <code>www_k3s</code>)'s WP-Cron section) first.
 </div>
 <div class="callout callout-info">
   <strong>OS-level CIS hardening also shared</strong>
@@ -2244,7 +2237,7 @@ Both verified 2026-09-14.</p>
   sysctls in <code>common_sysctl</code> were added to
   <code>nextcloud-k3s.yml</code>'s role list alongside the blog's, since
   they're host-level, not app-specific. Rolled out and verified on both
-  Nextcloud hosts (drift check without differences, 2026-10-12). See the WordPress ops guide's
+  Nextcloud hosts (drift check without differences, 2026-10-12). See the WordPress operations guide (archived repository <code>www_k3s</code>)'s
   Security section for the full OpenSCAP results and the reasoning behind
   what was deliberately left out (PAM/authselect, GRUB2 password, custom
   crypto policy).

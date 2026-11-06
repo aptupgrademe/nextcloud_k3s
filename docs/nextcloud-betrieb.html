@@ -244,7 +244,7 @@
 </style>
 </head>
 <body>
-<p style="background:#fff3cd;color:#333;padding:10px;border:1px solid #d6b656"><strong>Note:</strong> This repository was split from <code>www_k3s</code> (tag <code>final-before-split</code>). References to the blog, WordPress or the <code>stack</code> variable describe that former setup and will be removed in a later revision.</p>
+<p style="background:#fff3cd;color:#333;padding:10px;border:1px solid #d6b656"><strong>Note:</strong> This repository was split from <code>www_k3s</code> (tag <code>final-before-split</code>). The blog moved to its own repository, <code>www_hugo</code>, and no longer runs on K3s. Remaining mentions of the blog or WordPress are history: they name where a finding was first made.</p>
 
 <!-- ═══════════════════════════════ SIDEBAR ═══════════════════════════════ -->
 <nav>
@@ -709,7 +709,7 @@ kubectl -n default run nptest --image=busybox:1 --restart=Never --rm -i -- \
   nicht ausdrücken kann. notify_push ist klein und vorhersehbar und hat beide
   Richtungen. Die <code>nextcloud-cron</code>-Pods sind nicht ausgewählt, der
   Startup-Race aus dem WordPress-Handbuch greift also nicht. (Der Blog hat seit 20.08.2026 eigene Policies für
-  WordPress, MariaDB und Redis, siehe WordPress-Betriebshandbuch.)
+  WordPress, MariaDB und Redis, siehe WordPress-Betriebshandbuch (archiviertes Repository <code>www_k3s</code>).)
 </div>
 <div class="callout callout-warn">
   <strong>Neuen Pod/Service im Namespace <code>nextcloud</code> hinzugefügt?</strong>
@@ -1394,13 +1394,6 @@ journalctl -u mysqld_exporter -n 50
 # Metriken direkt abrufen (Test)
 curl -s http://127.0.0.1:9104/metrics | grep mysql_up</code></pre>
 
-<div class="callout callout-info">
-  <strong>Grafana-Hostname anpassen bei Szenariumwechsel</strong>
-  Wenn der Server von Nextcloud auf WordPress (Blog) umgestellt wird, muss
-  <code>grafana_proxy_hostname</code> in <code>host_vars/&lt;host&gt;/vars.yml</code>
-  auf den Blog-Hostnamen geändert werden – sonst zeigt der /grafana/-Pfad
-  auf den falschen Ingress.
-</div>
 
 <h3>Log-Rotation (MariaDB auf dem Host)</h3>
 <p>
@@ -2030,7 +2023,7 @@ rm -f ~/.ansible/cp/*</code></pre>
 
 <h3>Kompression &amp; TLS-Tuning</h3>
 <p>
-  gzip-Kompression ist auf der nginx-ingress-Ebene konfiguriert und wirkt für alle Domains (Nextcloud und WordPress). Brotli ist <strong>nicht</strong> verfügbar — das F5-nginx-ingress-OSS-Image enthält kein ngx_brotli-Modul — und OCSP Stapling wird nicht genutzt, da Let's Encrypt OCSP eingestellt hat (aktuelle Zertifikate tragen keine OCSP-URI). gzip (Level 6) deckt Text, HTML, JSON, JS, CSS und SVG ab.
+  gzip-Kompression ist auf der nginx-ingress-Ebene konfiguriert und wirkt für alle Domains. Brotli ist <strong>nicht</strong> verfügbar — das F5-nginx-ingress-OSS-Image enthält kein ngx_brotli-Modul — und OCSP Stapling wird nicht genutzt, da Let's Encrypt OCSP eingestellt hat (aktuelle Zertifikate tragen keine OCSP-URI). gzip (Level 6) deckt Text, HTML, JSON, JS, CSS und SVG ab.
 </p>
 <pre><code># Kompression prüfen (Brotli auf diesem Ingress nicht verfügbar)
 curl -sk --resolve nextcloud.example.com:443:127.0.0.1 \
@@ -2103,7 +2096,7 @@ oder wieder einbaut. Beides geprüft am 2026-09-14.</p>
   </tr>
   <tr>
     <td>SSH</td>
-    <td>Port 10022, Key-only (<code>PermitRootLogin without-password</code>), gehärtete sshd_config, Fail2Ban, <code>sshd_config.d/00-hardening.conf</code> pinnt Key-only vor Anbieter-Drop-ins (Contabos <code>50-cloud-init.conf</code> schaltete Passwörter sonst wieder ein, gefunden 30.09.2026). Dort steht auch <code>X11Forwarding no</code>, weil AlmaLinux’ <code>50-redhat.conf</code> sonst <code>yes</code> setzte (gefunden 02.10.2026). Optionaler Länderfilter für Port 10022 (<code>fw_ssh_geo_countries</code>, z. B. <code>[DE]</code>; aktiv auf dem Blog und auf cvjm seit 02.10.2026, sofie ohne; siehe WordPress-Betriebsdoku)</td>
+    <td>Port 10022, Key-only (<code>PermitRootLogin without-password</code>), gehärtete sshd_config, Fail2Ban, <code>sshd_config.d/00-hardening.conf</code> pinnt Key-only vor Anbieter-Drop-ins (der Anbieter-Drop-in <code>50-cloud-init.conf</code> schaltete Passwörter sonst wieder ein, gefunden 30.09.2026). Dort steht auch <code>X11Forwarding no</code>, weil AlmaLinux’ <code>50-redhat.conf</code> sonst <code>yes</code> setzte (gefunden 02.10.2026). Optionaler Länderfilter für Port 10022 (<code>fw_ssh_geo_countries</code>, z. B. <code>[DE]</code>; aktiv auf dem Blog und auf cvjm seit 02.10.2026, sofie ohne; siehe WordPress-Betriebsdoku)</td>
     <td><code>common_ssh</code>, <code>common_fail2ban</code>, <code>common_firewall</code></td>
   </tr>
   <tr>
@@ -2260,7 +2253,7 @@ oder wieder einbaut. Beides geprüft am 2026-09-14.</p>
   "Policy-Startup-Race"-Befund der WordPress-Seite greift also weiterhin
   nicht. Falls je eine Policy den Egress der Cron-Pods einschränkt, diesen
   Befund zuerst erneut prüfen (siehe WP-Cron-Abschnitt im
-  WordPress-Betriebshandbuch).
+  WordPress-Betriebshandbuch (archiviertes Repository <code>www_k3s</code>)).
 </div>
 <div class="callout callout-info">
   <strong>OS-Level-CIS-Härtung ebenfalls geteilt</strong>
@@ -2272,7 +2265,7 @@ oder wieder einbaut. Beides geprüft am 2026-09-14.</p>
   ausgerollt und verifiziert (Drift-Check ohne Abweichungen, 2026-10-12). Volle
   OpenSCAP-Ergebnisse und die Begründung für bewusst Ausgelassenes
   (PAM/authselect, GRUB2-Passwort, Custom-Crypto-Policy) siehe
-  Sicherheits-Abschnitt im WordPress-Betriebshandbuch.
+  Sicherheits-Abschnitt im WordPress-Betriebshandbuch (archiviertes Repository <code>www_k3s</code>).
 </div>
 
 <h3>Container- &amp; App-Härtung</h3>
