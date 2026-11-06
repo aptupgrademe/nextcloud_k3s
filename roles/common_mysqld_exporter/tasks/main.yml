@@ -11,8 +11,7 @@
 # (system user, pinned binary only when the version differs, systemd unit),
 # plus one extra file: the database credentials the exporter logs in with.
 # Only used on the Nextcloud hosts, where MariaDB runs on the host itself;
-# the blog's MariaDB runs in K3s and has its exporter as a sidecar
-# container (blog_k3s_deploy).
+# MariaDB runs on the host here, so the exporter does too.
 #
 # Ansible concepts new in this role:
 #   no_log: true   hides the task's arguments and result from the output

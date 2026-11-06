@@ -4,7 +4,7 @@
 # make Monit fire a real alert (and a real e-mail), then restarts it. Opt-in
 # so a normal playbook run never spams the alert inbox:
 #
-#     ansible-playbook blog.yml --limit <host> -e monit_selftest=true
+#     ansible-playbook nextcloud-k3s.yml --limit <host> -e monit_selftest=true
 #
 # Included from the *_verify roles, gated on monit_selftest.
 # =============================================================================

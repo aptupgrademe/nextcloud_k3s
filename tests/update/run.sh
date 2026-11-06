@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Scenario test for blog-update.yml and nextcloud-update.yml - no server, no
+# Scenario test for nextcloud-update.yml - no server, no
 # cluster: "k3s kubectl" and crictl are replaced by fakes (fake-*) that play
 # a healthy instance, an upstream image rebuild, or a failure at one step.
 # Each scenario checks the exit code, the calls made (restarts, occ, update
@@ -30,10 +30,8 @@ scenario() {
   cp "$HERE/fake-crictl" "$sim/bin/crictl"
   case $pb in
     nextcloud) cp "$HERE/fake-k3s-nextcloud" "$sim/bin/k3s"; group=nextcloud ;;
-    blog)      cp "$HERE/fake-k3s-blog" "$sim/bin/k3s"; group=blog ;;
   esac
   echo '{"message":"test log line"}' > "$sim/data/nextcloud.log"
-  touch "$sim/backups/wordpress-db-2026-10-12_0300.sql.gz"
   cat > "$sim/inventory.yml" <<EOF
 $group:
   hosts:
@@ -41,8 +39,6 @@ $group:
       ansible_connection: local
       ansible_python_interpreter: $(command -v python3)
       nextcloud_data_dir: $sim/data
-      blog_hostname: blog.example.test
-      blog_k3s_update_backup_dir: $sim/backups
 EOF
   SIM=$sim SCENARIO=$sc REBUILT=$rebuilt PATH=$sim/bin:$PATH ANSIBLE_CONFIG=$REPO/ansible.cfg \
     ansible-playbook -i "$sim/inventory.yml" "$REPO/$pb-update.yml" --limit sim \
@@ -69,13 +65,6 @@ scenario nextcloud upgrade_fails         upgrade_fails      ""         2  True  
 scenario nextcloud apps_fail             apps_fail          ""         2  False  "maintenance:mode_--off"                 ""
 scenario nextcloud rollout_fails         rollout_fails      nextcloud  2  False  "restart_deployment/nextcloud"           "occ_upgrade"
 scenario nextcloud check_mode            ""                 nextcloud  0  False  ""                                       "pull,rollout,occ_upgrade" --check
-scenario blog      healthy               ""                 ""         0  -      "create_job"                             "rollout"
-scenario blog      plugin_updated        plugin_updated     ""         0  -      "restart_deployment/wordpress"           "deployment/redis"
-scenario blog      image_rebuilt         ""                 redis      0  -      "restart_deployment/redis"               "deployment/wordpress"
-scenario blog      job_fails             job_fails          ""         2  -      "create_job"                             "rollout"
-scenario blog      rollout_fails         rollout_fails      ""         2  -      "status_deployment/wordpress"            ""
-scenario blog      not_running           not_running        ""         2  -      ""                                       "create_job,pull"
-scenario blog      check_mode            ""                 redis      0  -      ""                                       "create_job,pull,rollout" --check
 
 [ "$FAIL" = 0 ] && echo "== PASSED" || echo "== FAILED"
 exit "$FAIL"

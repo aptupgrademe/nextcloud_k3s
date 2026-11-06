@@ -18,9 +18,7 @@
 # denials ("permissive=0") mails anything that was still missed.
 selinux_monitoring_permissive: false
 
-# Which modules a host gets: mysqld_exporter runs on the Nextcloud hosts
-# only (the blog has it as a sidecar in the MariaDB pod).
-selinux_monitoring_modules: "{{ ['prometheus', 'node_exporter', 'grafana'] + (['mysqld_exporter'] if stack == 'nextcloud' else []) }}"
+selinux_monitoring_modules: [prometheus, node_exporter, grafana, mysqld_exporter]
 
 # Service unit per module (restarted once its executable got the new label,
 # so the running process enters the domain).

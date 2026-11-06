@@ -5,7 +5,7 @@
 #
 # Part 1 of nextcloud_verify: collect raw results (_v_*), never fail -
 # see common_verify/tasks/host.yml for the pattern and
-# blog_verify/tasks/checks.yml for the curl status-code fallbacks.
+# common_verify/tasks/http.yml for the curl status-code fallbacks.
 
 - name: Verify | Shared host checks (common_verify)
   ansible.builtin.import_role:

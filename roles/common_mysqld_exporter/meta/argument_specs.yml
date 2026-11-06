@@ -27,7 +27,3 @@ argument_specs:
         type: str
         required: true
         no_log: true
-      blog_db_exporter_pass:
-        description: Password of the least-privilege mysqld_exporter DB user
-        type: str
-        no_log: true

@@ -1,5 +1,5 @@
 ---
-# HTTP timeout for URL checks (seconds) - same value as in blog_verify and
+# HTTP timeout for URL checks (seconds) - same value as in
 # nextcloud_verify, which keep their own copy for their remaining checks.
 #
 # defaults/ = lowest-priority role variables (any inventory value wins).
@@ -10,14 +10,14 @@ verify_http_timeout: 15
 # "enforcing" is not enough: MariaDB ran in initrc_t for five weeks (CLAUDE.md).
 # Loki, Alloy and Monit run unconfined on purpose (no own policy yet).
 verify_daemon_domains:
-  - {comm: prometheus,      domain: homelab_prometheus_t,      stack: all}
-  - {comm: node_exporter,   domain: homelab_node_exporter_t,   stack: all}
-  - {comm: grafana,         domain: homelab_grafana_t,         stack: all}
-  - {comm: fail2ban-server, domain: fail2ban_t,                stack: all}
-  - {comm: sshd,            domain: sshd_t,                    stack: all}
-  - {comm: auditd,          domain: auditd_t,                  stack: all}
-  - {comm: crond,           domain: crond_t,                   stack: all}
-  - {comm: k3s-server,      domain: container_runtime_t,       stack: all}
-  - {comm: mariadbd,        domain: mysqld_t,                  stack: nextcloud}
-  - {comm: redis-server,    domain: redis_t,                   stack: nextcloud}
-  - {comm: mysqld_exporter, domain: homelab_mysqld_exporter_t, stack: nextcloud}
+  - {comm: prometheus,      domain: homelab_prometheus_t}
+  - {comm: node_exporter,   domain: homelab_node_exporter_t}
+  - {comm: grafana,         domain: homelab_grafana_t}
+  - {comm: fail2ban-server, domain: fail2ban_t}
+  - {comm: sshd,            domain: sshd_t}
+  - {comm: auditd,          domain: auditd_t}
+  - {comm: crond,           domain: crond_t}
+  - {comm: k3s-server,      domain: container_runtime_t}
+  - {comm: mariadbd,        domain: mysqld_t}
+  - {comm: redis-server,    domain: redis_t}
+  - {comm: mysqld_exporter, domain: homelab_mysqld_exporter_t}

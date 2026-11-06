@@ -14,7 +14,7 @@
 #          common_prometheus writes the scraper token to
 #          /etc/prometheus/kubelet-token and scrapes both; common_grafana
 #          imports the "Container resources" dashboard and the alert rules.
-# Target:  both stacks (blog.yml, nextcloud-k3s.yml), after common_k3s and
+# Target:  nextcloud-k3s.yml, after common_k3s and
 #          before common_prometheus.
 # =============================================================================
 #

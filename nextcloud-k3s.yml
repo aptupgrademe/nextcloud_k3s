@@ -57,11 +57,6 @@
 # =============================================================================
 - name: Install packages and configure server
   hosts: nextcloud
-  # Which stack this play installs. Shared roles read it instead of asking the
-  # inventory group (the test host is in both groups), and the profile roles
-  # (common_selinux, common_clamav) pick their settings with it.
-  vars:
-    stack: nextcloud
   # gather_subset: only "min" – the sole facts actually used anywhere in
   # this repo are kernel (next_packages reboot check), distribution (common_firewall),
   # fqdn/hostname (monit, MariaDB) and date_time, all part of "min" - read as

@@ -24,7 +24,7 @@
 # -----------------------------------------------------------------------------
 # Packages required by K3s on RHEL 9
 # -----------------------------------------------------------------------------
-# python3-kubernetes (EPEL, enabled by blog_packages/next_packages before this
+# python3-kubernetes (EPEL, enabled by next_packages before this
 # role): the Python client the kubernetes.core modules (k8s, k8s_info, helm)
 # use on the host to talk to the K3s API instead of shelling out to kubectl.
 - name: K3s | Install container-selinux and the Kubernetes Python client
@@ -339,7 +339,7 @@
 # Handlers otherwise only run at the very end of the whole play – far too
 # late for a version upgrade. Flush immediately so the restart (new binary)
 # happens here, before "Wait for the API server" below and before any later
-# role (e.g. blog_k3s_deploy) runs against a stale, about-to-be-replaced K3s.
+# role (e.g. next_k3s_deploy) runs against a stale, about-to-be-replaced K3s.
 - name: K3s | Apply pending handlers (restart on config/binary change)
   ansible.builtin.meta: flush_handlers
 

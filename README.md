@@ -1,11 +1,10 @@
-# Homelab Ansible – Nextcloud & WordPress
+# Homelab Ansible – Nextcloud on K3s
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Ansible](https://img.shields.io/badge/Ansible-2.15+-red.svg)](https://www.ansible.com/)
 [![K3s](https://img.shields.io/badge/K3s-latest-blue.svg)](https://k3s.io/)
 [![AlmaLinux](https://img.shields.io/badge/AlmaLinux-9-green.svg)](https://almalinux.org/)
-[![Nextcloud](https://img.shields.io/badge/Nextcloud-34-0082C9.svg)](https://nextcloud.com/)
-[![WordPress](https://img.shields.io/badge/WordPress-7.1.0-21759B.svg)](https://wordpress.org/)
+[![Nextcloud](https://img.shields.io/badge/Nextcloud-35-0082C9.svg)](https://nextcloud.com/)
 
 Ansible playbooks to deploy and manage internet-facing servers
 (K3s on AlmaLinux 9) fully automated.
@@ -13,15 +12,12 @@ Ansible playbooks to deploy and manage internet-facing servers
 The goal is to be able to rebuild any machine from scratch using a single
 `ansible-playbook` command.
 
-Two independent deployment scenarios:
+It deploys Nextcloud with Collabora CODE (online office) on K3s, with nginx-ingress,
+cert-manager, Prometheus, Grafana, Fail2Ban and nftables hardening.
 
-| Scenario | Playbook | Target | What gets deployed |
-|---|---|---|---|
-| **Nextcloud** | `nextcloud-k3s.yml` | Internet VPS (AlmaLinux 9) | Nextcloud + Collabora CODE (online office) on K3s |
-| **WordPress** | `blog.yml` | Internet VPS (AlmaLinux 9) | WordPress blog on K3s |
-
-Both scenarios share a common infrastructure layer (K3s, nginx-ingress,
-cert-manager, Prometheus, Grafana, Fail2Ban, nftables hardening).
+This repository was split from
+[`www_k3s`](https://github.com/aptupgrademe/www_k3s) (archived; tag `final-before-split`), which
+managed Nextcloud and a WordPress blog together. The blog lives on in its own repository.
 
 ---
 
@@ -43,16 +39,17 @@ Internet
 │  │  cert-manager   (Let's Encrypt – auto TLS)         │    │
 │  │  NetworkPolicy: K3s policy controller (kube-router)│    │
 │  │                                                     │    │
-│  │  ┌──────────────────┐  ┌─────────────────────────┐ │    │
-│  │  │  Nextcloud stack │  │   WordPress stack        │ │    │
-│  │  │  nextcloud-fpm   │  │   wordpress-fpm          │ │    │
-│  │  │  nginx sidecar   │  │   nginx sidecar          │ │    │
-│  │  │  Collabora CODE  │  │   MariaDB pod            │ │    │
-│  │  └──────────────────┘  │   Redis pod              │ │    │
-│  │                        └─────────────────────────┘ │    │
+│  │  ┌──────────────────┐                               │    │
+│  │  │  Nextcloud stack │                               │    │
+│  │  │  nextcloud-fpm   │                               │    │
+│  │  │  nginx sidecar   │                               │    │
+│  │  │  notify_push     │                               │    │
+│  │  │  Collabora CODE  │                               │    │
+│  │  └──────────────────┘                               │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │
-│  Host services: Prometheus · Grafana · Fail2Ban · nftables  │
+│  Host services: MariaDB · Redis · Prometheus · Grafana      │
+│  Fail2Ban · nftables                                        │
 │  auditd · rkhunter · dnf-automatic · msmtp                  │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -61,46 +58,27 @@ Internet
 
 ## Features
 
-### Nextcloud & WordPress
+### Nextcloud
 
 - **Nextcloud 35** with PHP-FPM, nginx sidecar, Redis (host service) and MariaDB 10.11
 - **Collabora CODE** (online office) with WOPI integration
-- **NetworkPolicies on both stacks**, enforced by K3s's embedded policy controller
+- **NetworkPolicies**, enforced by K3s's embedded policy controller
   (kube-router): on Nextcloud, Collabora can never reach MariaDB/Redis directly, and
   since 2026-10-20 the Nextcloud pod accepts only the ingress controller, Collabora
-  and the exporter scrape, notify_push only the ingress controller; on
-  the blog, MariaDB/Redis only accept the WordPress pods and WordPress's own egress
-  is capped. (Calico ran next to it until 2026-10-19 but never enforced anything –
+  and the exporter scrape, notify_push only the ingress controller.
+  (Calico ran next to it until 2026-10-19 but never enforced anything –
   see below.)
-- **WordPress 7.1** (core 7.1.4 via the nightly minor updates, on the pinned `wordpress:7.1.4` image) with PHP-FPM,
-  nginx sidecar, MariaDB pod and **Redis Object Cache** pod
-- Automatic installation on first pod start via container env vars and WP-CLI
-- WordPress WP-Cron as Kubernetes CronJob (no HTTP trigger); the cron pods carry
-  their own label (`app: wordpress-cron`) so the Services never route visitors to them
-- **Nightly WordPress updates** – CronJob `wordpress-autoupdate` (03:30 Europe/Berlin):
-  DB dump first, then core minor releases, plugins, themes and all language packs via
-  WP-CLI, and an HTTP 200 check afterwards. `blog-update.yml` runs the same job on demand and
-  re-pulls rebuilt images; `nextcloud-update.yml` is its Nextcloud counterpart (both refuse to run
-  without `--limit`)
-- **Config changes roll the pod** – a `checksum/config` annotation on the Nextcloud and
-  WordPress pod templates restarts the pod once when a rendered ConfigMap changes
+- `nextcloud-update.yml` runs updates host by host and refuses to run without `--limit`
+- **Config changes roll the pod** – a `checksum/config` annotation on the Nextcloud
+  pod template restarts the pod once when a rendered ConfigMap changes
   (subPath mounts never update inside a running pod)
-- **Pull backups with history** (my local setup, running in my homelab) – a backup machine pulls every Nextcloud instance and
-  the blog (rsync + verified DB dump, no maintenance mode) and keeps 365 days of versions (30 until 2026-10-21; the backup disk has room)
+- **Pull backups with history** (my local setup, running in my homelab) – a backup machine pulls every Nextcloud instance
+  (rsync + verified DB dump, no maintenance mode) and keeps 365 days of versions (30 until 2026-10-21; the backup disk has room)
   with rdiff-backup; Monit alerts on the servers when the last success is older than
-  3 days (`scripts/nextcloud-backup/`, `scripts/wordpress-backup/`). Optional split setup: an always-on
+  3 days (`scripts/nextcloud-backup/`). Optional split setup: an always-on
   NAS pulls at night, the backup PC only versions the NAS copy over SSH
-- **Multilingual blog** – English original plus German, French and Spanish via the free Polylang
-  plugin (installed in the admin, not by the playbook); the mu-plugin `language-links.php`
-  (`blog_wordpress`) adds an "Also available in" line to posts and pages. The translations are
-  content in the WordPress database, created by the author with Claude in a separate workflow –
-  **they are not part of this repository**, so a fork has to produce its own translations
-- **Anonymous visitor statistics** (`blog_visitor_stats`) – a daily count of visitors, page views,
-  countries (local DB-IP Lite lookup) and search-engine arrivals from the access logs; only the totals
-  are stored, no IPs, no cookies, no tracker
 - **Container health probes** – startup + readiness + liveness (tcpSocket) on
-  every FPM, nginx and Collabora container (the blog's MariaDB pod: exec ping with
-  a startup gate and 5 s timeouts since 2026-10-20), so a *wedged* (not crashed) container
+  every FPM, nginx and Collabora container, so a *wedged* (not crashed) container
   is restarted automatically while a slow `occ upgrade` or preview burst never
   trips a restart loop
 - **Reproducible app layout** – playbook-driven enable/disable reconcile
@@ -121,12 +99,8 @@ Internet
 |---|---|---|
 | **HTTP/2** | nginx-ingress | Multiplexing, HPACK header compression |
 | **gzip compression** | nginx-ingress | Level 6 for HTML, CSS, JS, JSON, SVG (Brotli is not built into the F5 controller image) |
-| **Browser cache** | nginx sidecar (blog) | CSS/JS/fonts 1 year `immutable`, images 30 days, one `Cache-Control` header |
-| **Font preload + eager LCP image** | WordPress mu-plugin `performance-hints.php` | No layout shift from font swaps; the first large image loads at once |
-| **Uploads as WebP, max 1536 px, < 280 KB** | WordPress mu-plugin `upload-images.php` (`blog_wordpress/tasks/media.yml`) | One image format; featured images small enough for link previews (WhatsApp ignores og:image > ~300 KB) |
-| **Redis Object Cache** | WordPress pod | DB queries replaced by Redis lookups |
 | **PHP OPcache** | PHP-FPM | Bytecode cached in memory |
-| **/tmp on RAM (tmpfs)** | WordPress / Nextcloud FPM | emptyDir – PHP temp files bypass disk |
+| **/tmp on RAM (tmpfs)** | Nextcloud FPM | emptyDir – PHP temp files bypass disk |
 | **TCP BBR** | Host kernel | Better throughput on congested links |
 | **THP madvise** | Host kernel | Prevents latency spikes in MariaDB, Redis |
 | `tcp_max_syn_backlog=4096` | Host kernel | Avoids SYN drops under burst traffic |
@@ -146,12 +120,12 @@ Internet
 - **Reload touches only `table inet filter`**: the ruleset replaces its own
   table atomically, and a systemd drop-in scopes `reload`/`stop` the same way.
   kube-proxy, flannel and K3s's policy controller keep their rules in nftables
-  too (iptables-nft on all hosts; the blog used iptables-legacy until 2026-10-19),
+  too (iptables-nft on all hosts),
   and the stock `flush ruleset` wiped them, breaking Service traffic for up to
   90 s on every firewall change
 - The template is checked with `nft -c` before it replaces the live file
 - **Optional SSH country filter** (`fw_ssh_geo_countries`, e.g. `[DE]`, off by
-  default; on for the blog and cvjm, not sofie): port 10022 accepts new connections
+  default): port 10022 accepts new connections
   only from the IP blocks RIPE has delegated to those countries. Web traffic is
   not affected. `ssh-geo-update` builds `/etc/nftables/ssh-geo.nft`, which the
   ruleset includes, so reloads and boots refill the sets in the same
@@ -160,7 +134,7 @@ Internet
   For Germany: ~8,700 IPv4 + 3,100 IPv6 blocks, ~1.5 MB kernel memory. Details
   and the emergency path: [`roles/common_firewall/readme.md`](roles/common_firewall/readme.md)
 
-#### NetworkPolicy – K3s's policy controller (both stacks)
+#### NetworkPolicy – K3s's policy controller
 
 - Enforced by the **network policy controller built into K3s** (kube-router,
   chains `KUBE-ROUTER`/`KUBE-NWPLCY`), which runs by default next to Flannel.
@@ -180,9 +154,6 @@ Internet
   store, push servers, federation and external storages cannot be listed
   without FQDN rules) and `notify-push-netpol` (both directions: ingress
   controller in; DNS and the host's MariaDB/Redis/443 out).
-- On the blog, the WordPress stack's policies let only the WordPress pods reach
-  MariaDB and Redis, and cap WordPress's own traffic to what it needs
-  (`roles/blog_k3s_deploy/templates/networkpolicy.yml.j2`).
 
 #### Intrusion Detection – Fail2Ban
 
@@ -208,7 +179,7 @@ Without it they silently kept watching a dead file.
 | Key exchange | ECDHE only; hybrid post-quantum `X25519MLKEM768` offered first (OpenSSL 3.5 default) |
 | OCSP Stapling | off on purpose – Let's Encrypt retired OCSP; revocation works via CRLs and short lifetimes |
 | `ssl_session_tickets` | off (Perfect Forward Secrecy) |
-| HSTS | `max-age=31536000; includeSubDomains; preload`, also on the blog's apex redirect (preload-ready) |
+| HSTS | `max-age=31536000; includeSubDomains; preload` |
 | Certificates | Let's Encrypt via cert-manager (HTTP-01), ECDSA P-256 |
 | Before issuance | Self-signed placeholder, so a host is never served a bare TLS reset |
 
@@ -228,12 +199,10 @@ issuance succeeds.
   false`, and **read-only root filesystems** on the nginx/exporter sidecars
 - **auditd** with security-relevant rules
 - **rkhunter** daily scan with email alerts
-- **ClamAV** nightly scan of Nextcloud user data / WordPress uploads, email alerts; on the Nextcloud
-  hosts the scan skips Nextcloud previews and pure image/video/audio files (`clamav_skip_extensions`)
+- **ClamAV** nightly scan of Nextcloud user data, email alerts; the scan skips Nextcloud previews and pure image/video/audio files (`clamav_skip_extensions`)
 - **dnf-automatic** for auto security updates, automatic reboot if required.
   The night runs in a fixed order: AIDE check 00:00, updates 01:00-02:00,
-  reboot if needed 03:30, AIDE baseline refresh 04:00, ClamAV data scan 04:30
-  (Nextcloud hosts) - so an update never triggers a false AIDE alert and a
+  reboot if needed 03:30, AIDE baseline refresh 04:00, ClamAV data scan 04:30 - so an update never triggers a false AIDE alert and a
   reboot never cuts a scan short
 - **systemd hardening** drop-ins for sshd, node_exporter, prometheus
 - **CIS AlmaLinux 9 Benchmark** hardening (AIDE file integrity, kernel module
@@ -265,8 +234,8 @@ issuance succeeds.
 ## Quick Start
 
 ```bash
-git clone https://github.com/aptupgrademe/www_k3s.git
-cd www_k3s
+git clone https://github.com/aptupgrademe/nextcloud_k3s.git
+cd nextcloud_k3s
 
 # Set up inventory
 cp inventory/host_vars/test/vars.yml.example inventory/host_vars/myserver/vars.yml
@@ -276,9 +245,6 @@ ansible-vault encrypt inventory/host_vars/myserver/vault.yml
 
 # Deploy Nextcloud
 ansible-playbook nextcloud-k3s.yml --limit myserver --ask-vault-pass
-
-# Deploy WordPress
-ansible-playbook blog.yml --limit myserver --ask-vault-pass
 ```
 
 ### First run on a fresh server
@@ -304,11 +270,9 @@ reminder at the end of a first run.
 ## Project Structure
 
 ```
-www_k3s/
+nextcloud_k3s/
 ├── nextcloud-k3s.yml          # Nextcloud + Collabora playbook
-├── blog.yml                   # WordPress playbook
 ├── nextcloud-update.yml       # Nextcloud patch update playbook
-├── blog-update.yml            # WordPress plugins/themes/core + rebuilt images, on demand
 │
 ├── inventory/
 │   ├── hosts.yml              # Server inventory (gitignored)
@@ -321,16 +285,12 @@ www_k3s/
 │       └── vault.yml.example  # Template with placeholder values (committed)
 │
 ├── roles/
-│   ├── common_*/              # Shared roles (K3s, SSH, Firewall, Monitoring, ClamAV, SELinux, …)
-│   ├── next_*/                # Nextcloud-specific roles
-│   └── blog_*/                # WordPress-specific roles
+│   ├── common_*/              # Base roles (K3s, SSH, Firewall, Monitoring, ClamAV, SELinux, …)
+│   └── next_*/                # Nextcloud-specific roles
 │
 ├── scripts/
 │   ├── nextcloud-backup/      # Pull backup (rsync + rdiff-backup) for a backup machine, see its README
 │   ├── nextcloud-restore.sh   # Nextcloud restore from /data/backup/nextcloud-data/<env>
-│   ├── wordpress-backup/      # Pull backup (rsync + rdiff-backup) for the blog, see its README
-│   ├── wordpress-backup.sh    # Manual ad-hoc WordPress backup via kubectl exec
-│   ├── wordpress-restore.sh   # WordPress restore including MariaDB re-init
 │   └── check-drift.sh         # --check --diff against a host: what would a real run change?
 │
 ├── tests/
@@ -340,9 +300,6 @@ www_k3s/
 ├── .ansible-lint, .yamllint, .pre-commit-config.yaml, .github/workflows/lint.yml, renovate.json5
 │
 └── docs/
-    ├── wordpress-betrieb.html       # WordPress – Betriebsdokumentation (DE)
-    ├── wordpress-operations.html    # WordPress – Operations guide (EN)
-    ├── wordpress-exploitation.html  # WordPress – Guide d'exploitation (FR)
     ├── nextcloud-betrieb.html       # Nextcloud – Betriebsdokumentation (DE)
     ├── nextcloud-operations.html    # Nextcloud – Operations guide (EN)
     ├── nextcloud-exploitation.html  # Nextcloud – Guide d'exploitation (FR)
@@ -386,24 +343,24 @@ ansible-vault encrypt inventory/host_vars/<host>/vault.yml
 | `common_version_active` | Last check: is every pin from versions.yml really running (kubelet, deployed charts, images of running containers, Prometheus/exporters, pending reboot, services on old code)? Reports only what is not active |
 | `common_k3s` | K3s, Helm, cert-manager, F5 nginx-ingress (HTTP/2, Brotli, OCSP) |
 | `common_kube_metrics` | Container metrics: read-only scraper token for the kubelet's cAdvisor + kube-state-metrics (NodePort 30808, local only) |
-| `common_firewall` | nftables only (legacy iptables packages removed; `common_cis_hardening` blocks the legacy table modules) – table inet, banned/scan-ban sets, port-scan detection, K3s exceptions, table-scoped reload, optional SSH country allowlist; on the blog the same list also limits `/wp-login.php` + `/wp-admin/` (nginx geo file, since 2026-10-19), and on every host `/grafana` in the ingress controller (`/srv/ingress-admin-geo`, since 2026-10-20) |
+| `common_firewall` | nftables only (legacy iptables packages removed; `common_cis_hardening` blocks the legacy table modules) – table inet, banned/scan-ban sets, port-scan detection, K3s exceptions, table-scoped reload, optional SSH country allowlist; the same list also limits `/grafana` in the ingress controller (`/srv/ingress-admin-geo`, since 2026-10-20) |
 | `common_ssh` | SSH hardening (port 10022, key-only, PermitRootLogin without-password) |
 | `common_prometheus` | Prometheus metrics collector (dashboards/history only – see note below) |
 | `common_grafana` | Grafana dashboards (incl. our own "Container-Ressourcen") |
-| `common_loki` | Loki + Grafana Alloy: journal, pod logs, audit.log/fail2ban.log (14 days, 127.0.0.1 only), Loki datasource + log alerts (AVC, fail2ban error, OOM, no logs), dashboard "fail2ban – Bans" – all hosts since 2026-10-20 (blog 2026-10-19) |
+| `common_loki` | Loki + Grafana Alloy: journal, pod logs, audit.log/fail2ban.log (14 days, 127.0.0.1 only), Loki datasource + log alerts (AVC, fail2ban error, OOM, no logs), dashboard "fail2ban – Bans" |
 | `common_node_exporter` | Host metrics exporter (+ textfile collector in `/var/lib/node_exporter/textfile`, fed by `common_trivy`) |
 | `common_mysqld_exporter` | MariaDB metrics exporter |
-| `common_monit` | Watchdog (systemd-sandboxed since 2026-10-19) and **the actual alerting path** – e-mails on resource/service/firewall/pod/TLS-certificate problems (since 2026-10-20 also the host MariaDB and Redis of the Nextcloud stack), auto-restarts fail2ban |
+| `common_monit` | Watchdog (systemd-sandboxed since 2026-10-19) and **the actual alerting path** – e-mails on resource/service/firewall/pod/TLS-certificate problems (also the host MariaDB and Redis), auto-restarts fail2ban |
 | `common_fail2ban` | Brute-force protection; writes to nftables banned sets; log-watch timer keeps the HTTP jails on the current ingress log |
 | `common_auditd` | Linux audit daemon |
 | `common_rkhunter` | Rootkit detection with daily scan |
 | `common_cis_hardening` | CIS AlmaLinux 9 Benchmark: AIDE, kernel modules, cron/sudo, mount options |
 | `common_aide_refresh` | Refreshes the AIDE baseline after approved changes, so the nightly check isn't a false alarm |
-| `common_clamav` | Nightly ClamAV scan – WordPress uploads or Nextcloud data (`clamav_target`) |
-| `common_trivy` | Nightly Trivy scan (pinned version + sha256) of every running image from containerd; counts in Grafana via the node_exporter textfile collector, mail only on NEW fixable CRITICAL/HIGH findings – all hosts since 2026-10-20 (blog 2026-10-19) |
-| `common_selinux` | SELinux enforcing + `container_file_t` for the stack's HostPath dirs (`selinux_target`); the pods run as `container_t` since `common_k3s` sets `selinux: true` with the `k3s-selinux` policy (2026-10-19) |
-| `common_selinux_monitoring` | Own SELinux domains (`homelab_*` modules) for Prometheus, node_exporter, mysqld_exporter and Grafana – permissive learning phase from 2026-10-19, enforcing on the blog since 2026-10-20 and on both Nextcloud hosts since 2026-10-21 |
-| `common_verify` | Smoke checks shared by `blog_verify` and `nextcloud_verify` (17, incl. every pod process `container_t` and all per-jail fail2ban sets present) |
+| `common_clamav` | Nightly ClamAV scan of the Nextcloud data |
+| `common_trivy` | Nightly Trivy scan (pinned version + sha256) of every running image from containerd; counts in Grafana via the node_exporter textfile collector, mail only on NEW fixable CRITICAL/HIGH findings |
+| `common_selinux` | SELinux enforcing + `container_file_t` for the HostPath dirs (`selinux_dirs`); the pods run as `container_t` since `common_k3s` sets `selinux: true` with the `k3s-selinux` policy (2026-10-19) |
+| `common_selinux_monitoring` | Own SELinux domains (`homelab_*` modules) for Prometheus, node_exporter, mysqld_exporter and Grafana – enforcing on both Nextcloud hosts since 2026-10-21 |
+| `common_verify` | Smoke checks used by `nextcloud_verify` (17, incl. every pod process `container_t` and all per-jail fail2ban sets present) |
 | `common_image_refresh` | Update playbooks: which Deployments run an outdated build of their tag; at the end (`tasks/prune.yml`) remove images no container uses |
 
 > **Alerting:** Monit is the main mail path. Prometheus evaluates the rules in
@@ -416,12 +373,11 @@ ansible-vault encrypt inventory/host_vars/<host>/vault.yml
 > needs `"condition": "B"`; without it Grafana logs "condition must not be
 > empty" on every evaluation and never fires.
 
-### Nextcloud & WordPress
+### Nextcloud
 
 | Role | Purpose |
 |---|---|
 | `next_*` | Nextcloud + Collabora roles |
-| `blog_*` | WordPress + Redis Object Cache roles (login/admin only from the SSH country list, see `common_firewall`) |
 
 ---
 
@@ -438,9 +394,7 @@ ingress_nginx_chart_version: "2.8.0"
 cert_manager_chart_version:  "1.21.3"
 
 # Container images
-blog_image_wordpress: "wordpress:7.1.4-php8.5-fpm"
 nextcloud_image_fpm:  "nextcloud:35.0.2-fpm"
-
 ```
 
 ---
@@ -454,7 +408,7 @@ nextcloud_image_fpm:  "nextcloud:35.0.2-fpm"
 | Hooks | `pre-commit install` once per clone; `pre-commit run --all-files` |
 | CI | `.github/workflows/lint.yml` – ansible-lint + gitleaks on every push |
 | K8s roles | `tests/k8s/run.sh` – idempotency, no pod restarts, no new Helm revisions, negative test |
-| Update playbooks | `tests/update/run.sh` – 14 failure scenarios (rescue, maintenance mode, pre-flight) |
+| Update playbooks | `tests/update/run.sh` – 7 failure scenarios (rescue, maintenance mode, pre-flight) |
 | Real hosts | `scripts/check-drift.sh <playbook> <host>` – exit 1 if a real run would change anything |
 
 How the code works – variables, roles, idempotency, Kubernetes modules, error handling, tests:
@@ -466,11 +420,11 @@ How the code works – variables, roles, idempotency, Kubernetes modules, error 
 
 ## Documentation
 
-| Document | WordPress | Nextcloud |
-|---|---|---|
-| **Deutsch** | [wordpress-betrieb.html](docs/wordpress-betrieb.html) | [nextcloud-betrieb.html](docs/nextcloud-betrieb.html) |
-| **English** | [wordpress-operations.html](docs/wordpress-operations.html) | [nextcloud-operations.html](docs/nextcloud-operations.html) |
-| **Français** | [wordpress-exploitation.html](docs/wordpress-exploitation.html) | [nextcloud-exploitation.html](docs/nextcloud-exploitation.html) |
+| Document | Nextcloud |
+|---|---|
+| **Deutsch** | [nextcloud-betrieb.html](docs/nextcloud-betrieb.html) |
+| **English** | [nextcloud-operations.html](docs/nextcloud-operations.html) |
+| **Français** | [nextcloud-exploitation.html](docs/nextcloud-exploitation.html) |
 
 | Ansible code (how it works) | |
 |---|---|

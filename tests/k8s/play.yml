@@ -1,6 +1,6 @@
 ---
 # Runs the Kubernetes-facing task files of common_k3s, common_kube_metrics,
-# blog_k3s_deploy and next_k3s_deploy against the API-only test cluster.
+# next_k3s_deploy against the API-only test cluster.
 # Started by run.sh, which sets ANSIBLE_ROLES_PATH (old or new roles) and
 # passes WORK / overrides via -e.
 - name: K8s apply test
@@ -31,11 +31,6 @@
       ansible.builtin.include_role: { name: common_kube_metrics }
       # new since 2026-10-19: an older <BASE_REF> tree does not have it yet
       when: (lookup('ansible.builtin.env', 'ANSIBLE_ROLES_PATH') ~ '/common_kube_metrics') is directory
-    - name: Blog workloads
-      ansible.builtin.include_role: { name: blog_k3s_deploy, tasks_from: "{{ task_file }}" }
-      loop_control: { loop_var: task_file }   # the roles' own loops use "item"
-      loop: [namespace_secrets.yml, mariadb.yml, external_services.yml, redis.yml, wordpress.yml,
-             ingress.yml, cronjob.yml, exporters.yml, networkpolicy.yml, image_policy.yml]
     - name: Nextcloud workloads
       ansible.builtin.include_role: { name: next_k3s_deploy, tasks_from: "{{ task_file }}" }
       loop_control: { loop_var: task_file }

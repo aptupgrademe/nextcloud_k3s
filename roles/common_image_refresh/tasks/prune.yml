@@ -1,6 +1,6 @@
 ---
 # common_image_refresh, part 2: remove images no container uses any more.
-# Called by blog-update.yml and nextcloud-update.yml at the very end, after
+# Called by nextcloud-update.yml at the very end, after
 # the health checks passed - the old build is only dropped once the new one
 # runs. Old version tags and old builds of the same tag otherwise pile up:
 # 2026-10-22 the blog had 65 unused images, root went from 40 to 22 GB.

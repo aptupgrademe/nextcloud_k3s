@@ -1,14 +1,14 @@
 ---
 # =============================================================================
 # common_verify: host checks (nftables, fail2ban, K3s, auditd, SELinux, TCP BBR)
-# Shared by blog_verify and nextcloud_verify (imported from their checks.yml).
+# Used by nextcloud_verify (imported from its checks.yml).
 # Read-only except the fail2ban effect test: every check registers its
 # result (_v_*) with failed_when: false;
 # the calling role turns them into the report and the final assert.
 # =============================================================================
 #
 # How this file is used: common_verify is never listed in a playbook. It is
-# a "library role" - blog_verify and nextcloud_verify pull its task files in
+# a "library role" - nextcloud_verify pulls its task files in
 # with
 #     ansible.builtin.import_role:
 #       name: common_verify
@@ -151,7 +151,7 @@
 - name: Verify | SELinux – host daemons in their own domain?
   ansible.builtin.shell: |
     set -o pipefail
-    {% for d in verify_daemon_domains | selectattr('stack', 'in', ['all', stack]) %}
+    {% for d in verify_daemon_domains %}
     t=$(ps -C {{ d.comm }} -o label= 2>/dev/null | cut -d: -f3 | sort -u | tr '\n' ' ')
     [ "$t" = "{{ d.domain }} " ] || echo "{{ d.comm }}: ${t:-not running} (expected {{ d.domain }})"
     {% endfor %}

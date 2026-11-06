@@ -142,7 +142,7 @@ def main():
     if new:
         body = [f"Trivy found {len(new)} new fixable {'/'.join(MAIL_SEV)} finding(s) on {HOST}.",
                 f"Open in total: {len(findings)}, gone since the last run: {len(gone)}.", "",
-                "Fix: a rebuilt image under the same tag -> blog-update.yml / nextcloud-update.yml",
+                "Fix: a rebuilt image under the same tag -> nextcloud-update.yml",
                 "(image refresh); otherwise raise the image pin in versions.yml.", ""]
         for f in new:
             body.append(f'{f["severity"]:8} {f["id"]:20} {f["pkg"]} {f["installed"]} -> {f["fixed"]}')

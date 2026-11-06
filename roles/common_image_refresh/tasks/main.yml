@@ -3,7 +3,7 @@
 # Role: common_image_refresh
 # Purpose: Pull the current build of every image used by the Deployments of
 #          one namespace and report which Deployments run an outdated build
-#          (same tag, rebuilt upstream). Used by blog-update.yml and
+#          (same tag, rebuilt upstream). Used by
 #          nextcloud-update.yml to restart only what actually needs it.
 #          tasks/prune.yml (since 2026-10-22, end of both update playbooks):
 #          remove the images no container uses any more.

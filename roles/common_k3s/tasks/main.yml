@@ -3,7 +3,7 @@
 # Role: common_k3s
 # Purpose: Install K3s single-node cluster, Helm, cert-manager (Let's Encrypt)
 #          and F5 nginx-ingress on AlmaLinux 9.
-#          Shared by both the nextcloud-k3s and blog playbooks.
+#          Used by the nextcloud-k3s playbook.
 # Target:  AlmaLinux 9 (SELinux enforcing)
 # =============================================================================
 #

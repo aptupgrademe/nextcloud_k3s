@@ -46,7 +46,6 @@ scrape_configs:
   # Only the exporters of this host's stack. Until 2026-10-02 all four jobs
   # were rendered everywhere, so every host showed two targets permanently
   # DOWN (the other stack's ports) - noise in Grafana's target views.
-{% if stack == 'nextcloud' %}
   # MariaDB – host service (Nextcloud) via common_mysqld_exporter
   - job_name: "mysqld_nextcloud"
     static_configs:
@@ -60,20 +59,3 @@ scrape_configs:
       - targets: ["127.0.0.1:30254"]
         labels:
           instance: "nextcloud"
-{% endif %}
-{% if stack == 'wordpress' %}
-
-  # MariaDB – K3s pod (WordPress) via NodePort 30104 → mysqld_exporter sidecar
-  - job_name: "mysqld_wordpress"
-    static_configs:
-      - targets: ["127.0.0.1:30104"]
-        labels:
-          instance: "wordpress"
-
-  # PHP-FPM – K3s pod (WordPress) via NodePort 30253 → php-fpm_exporter sidecar
-  - job_name: "php_fpm_wordpress"
-    static_configs:
-      - targets: ["127.0.0.1:30253"]
-        labels:
-          instance: "wordpress"
-{% endif %}

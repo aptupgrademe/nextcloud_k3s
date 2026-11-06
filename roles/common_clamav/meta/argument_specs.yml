@@ -7,24 +7,15 @@
 
 argument_specs:
   main:
-    short_description: Nightly antivirus scan of WordPress uploads or Nextcloud user data
+    short_description: Nightly antivirus scan of the Nextcloud user data
     description:
-      - stack (a play variable in blog.yml / nextcloud-k3s.yml) selects the profile in defaults/main.yml.
       - Ansible validates these inputs when the role starts. Values with no_log never show up in output.
     options:
-      stack:
-        description: Which stack the play installs (set as a play variable in blog.yml / nextcloud-k3s.yml)
-        type: str
-        required: true
-        choices: [wordpress, nextcloud]
       email:
         description: Admin e-mail address for alerts, reports and Let's Encrypt
         type: str
         required: true
         no_log: true
-      blog_k3s_www_dir:
-        description: HostPath of the WordPress files (stack wordpress)
-        type: str
       nextcloud_data_dir:
-        description: Nextcloud data directory on the host (stack nextcloud)
+        description: Nextcloud data directory on the host
         type: str

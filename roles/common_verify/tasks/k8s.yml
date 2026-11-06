@@ -1,7 +1,7 @@
 ---
 # =============================================================================
 # common_verify: cluster-wide pod checks (ingress-nginx, cert-manager, pods in error state)
-# Shared by blog_verify and nextcloud_verify (imported from their checks.yml).
+# Used by nextcloud_verify (imported from its checks.yml).
 # Read-only: every check registers its result (_v_*) with failed_when: false;
 # the calling role turns them into the report and the final assert.
 # =============================================================================

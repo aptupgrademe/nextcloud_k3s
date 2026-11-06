@@ -1,16 +1,14 @@
 ---
 # =============================================================================
 # Role: common_clamav
-# Purpose: Nightly antivirus scan of the user-supplied files of one stack -
-#          WordPress uploads (stack: wordpress) or Nextcloud user data
-#          (stack: nextcloud). On-demand only (nightly clamscan sweep
+# Purpose: Nightly antivirus scan of the Nextcloud user data. On-demand only (nightly clamscan sweep
 #          via cron) - no clamd daemon, no real-time on-access scanning. That
 #          keeps resource usage low on a modest VPS, at the cost of only
 #          catching malware the morning after it was uploaded/synced rather
 #          than instantly. Mirrors rkhunter's philosophy: silent on a clean
 #          run, an email only when something is actually found - detection
 #          only, nothing is deleted or moved automatically.
-#          Replaces the former blog_clamav and next_clamav roles, which were
+#          Replaces the former per-stack ClamAV roles, which were
 #          identical apart from the values now in clamav_profiles.
 # =============================================================================
 #
@@ -20,8 +18,6 @@
 # and mails only when something was found.
 #
 # Ansible concepts used here:
-#   set_fact clamav: profiles[stack]  pick one dict for the rest of the role
-#                  (stack is a play variable set in blog.yml / nextcloud-k3s.yml)
 #   Jinja loops building a regex  the media-extension pattern is GENERATED:
 #                  "jpg" becomes "[jJ][pP][gG]", so the exclude matches any
 #                  upper/lower case without clamscan supporting a flag for it
@@ -31,7 +27,7 @@
 
 - name: ClamAV | Pick the scan profile
   ansible.builtin.set_fact:
-    clamav: "{{ clamav_profiles[stack] }}"
+    clamav: "{{ clamav_profile }}"
 
 - name: ClamAV | Install packages
   ansible.builtin.dnf:
@@ -100,7 +96,7 @@
 # notice on top.
 - name: ClamAV | Deploy nightly scan script
   ansible.builtin.copy:
-    dest: "/usr/local/sbin/{{ stack }}-clamav-scan.sh"
+    dest: "/usr/local/sbin/nextcloud-clamav-scan.sh"
     owner: root
     group: root
     mode: "0750"
@@ -111,7 +107,7 @@
       # clamscan actually finds something (exit code 1) - a clean scan stays
       # silent, mirroring rkhunter's --report-warnings-only philosophy.
       set -u
-      SCAN_LOG="/var/log/clamav/{{ stack }}-scan.log"
+      SCAN_LOG="/var/log/clamav/nextcloud-scan.log"
       SCAN_DIR="{{ clamav.scan_dir }}"
 
       nice -n 19 ionice -c3 clamscan --recursive --infected --no-summary \
@@ -137,5 +133,5 @@
     hour: "{{ clamav.hour }}"
     minute: "{{ clamav.minute }}"
     # heartbeat-mark (common_node_exporter) only when the scan script succeeded
-    job: "/usr/local/sbin/{{ stack }}-clamav-scan.sh && /usr/local/sbin/heartbeat-mark clamav 108000"
+    job: "/usr/local/sbin/nextcloud-clamav-scan.sh && /usr/local/sbin/heartbeat-mark clamav 108000"
     user: root

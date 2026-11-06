@@ -3,7 +3,7 @@
 # Role: common_cis_hardening
 # Purpose: CIS AlmaLinux 9 Benchmark (Level 1 - Server) findings that are safe
 #          to apply without risking the k3s cluster or locking out admin
-#          access. Shared by both the blog and nextcloud playbooks.
+#          access. Used by the Nextcloud playbook.
 #
 # Deliberately NOT covered by this role - see the OpenSCAP audit notes
 # (2026-08-20) for the reasoning behind each:

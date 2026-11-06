@@ -12,7 +12,7 @@
 # package removal + firewall change) before this role existed; manually
 # running `aide --update` after every relevant playbook run doesn't scale.
 #
-# Placed as the LAST role in the play (after blog_verify / nextcloud_verify)
+# Placed as the LAST role in the play (after nextcloud_verify)
 # so it sees the fully-settled end state, not an intermediate one from
 # earlier in the run.
 # =============================================================================

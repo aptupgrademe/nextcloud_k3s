@@ -8,7 +8,7 @@
 # =============================================================================
 #
 # How it works: same "collect, judge, report, assert" structure as
-# blog_verify (see blog_verify/tasks/main.yml), with Nextcloud-specific
+# the shared common_verify checks, with Nextcloud-specific
 # checks: host MariaDB/Redis, Collabora, status.php, occ status, cron mode,
 # the richdocuments WOPI URL, and blocked /config + /data paths.
 

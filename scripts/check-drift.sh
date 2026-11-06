@@ -4,7 +4,6 @@
 #
 #   scripts/check-drift.sh <playbook> <host> [more ansible-playbook args]
 #   scripts/check-drift.sh nextcloud-k3s.yml cvjm
-#   scripts/check-drift.sh blog.yml www.apt-upgrade.me --tags blog_k3s_deploy
 #
 # Runs the playbook with --check --diff (nothing is changed on the host) and
 # prints only the tasks that would change, with their diff. Exit code 0 = no

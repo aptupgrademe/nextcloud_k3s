@@ -1,12 +1,11 @@
 ---
 # =============================================================================
-# Host variables – test server (Nextcloud OR WordPress – not both simultaneously)
+# Host variables – test server
 #
 # Usage:
 #   1. cp vars.yml.example vars.yml
 #   2. Fill in all CHANGE_ME values
 #   ansible-playbook nextcloud-k3s.yml --limit test --ask-vault-pass
-#   ansible-playbook blog.yml          --limit test --ask-vault-pass
 #
 # Sensitive credentials (passwords) are in vault.yml – see vault.yml.example
 # =============================================================================
@@ -49,41 +48,10 @@ wopi_allowed_hosts:
   - "{{ nextcloud_ipv4 }}"
 
 # ===========================================================================
-# BLOG (WordPress) scenario
-# ===========================================================================
-
-# --- Network aliases ---
-blog_ipv4: "{{ server_ipv4 }}"
-blog_ipv6: "{{ server_ipv6 }}"
-
-# --- Database ---
-blog_db:      "wordpress_db"
-blog_db_user: "wordpress"       # DB username (password → vault.yml)
-
-# --- Hostnames and URLs ---
-blog_hostname: "CHANGE_ME"                        # e.g. www.example.de
-blog_url:      "https://{{ blog_hostname }}"
-
-# --- WordPress site ---
-blog_title:       "CHANGE_ME"
-blog_admin_email: "{{ email }}"
-
-# --- Plugins ---
-blog_wordpress_plugins:
-  - classic-editor
-
-# --- Paths ---
-blog_k3s_www_dir: /srv/wordpress-www
-blog_k3s_db_dir:  /srv/wordpress-db
-
-# ===========================================================================
 # SHARED
 # ===========================================================================
 
 # --- Grafana ---
-# Update when switching scenarios:
-#   Nextcloud: grafana_proxy_hostname: "{{ nextcloud_hostname }}"
-#   WordPress: grafana_proxy_hostname: "{{ blog_hostname }}"
 grafana_proxy_hostname: "{{ nextcloud_hostname }}"
 
 # --- Mail / SMTP ---

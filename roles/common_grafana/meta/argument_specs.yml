@@ -34,9 +34,6 @@ argument_specs:
         description: Public hostname of the Grafana reverse proxy
         type: str
         required: true
-      blog_hostname:
-        description: Public hostname of the blog (e.g. www.example.de)
-        type: str
       nextcloud_hostname:
         description: Public hostname of Nextcloud (e.g. nextcloud.example.de)
         type: str

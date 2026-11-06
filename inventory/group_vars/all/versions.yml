@@ -36,17 +36,6 @@ nextcloud_image_busybox:      "busybox:1"                    # init containers, 
 
 nextcloud_redis_stream:       "7"                            # AppStream module stream (EL9 default: 6 = 6.2)
 
-# --- WordPress containers -------------------------------------------------------
-blog_image_wordpress:       "wordpress:7.1.4-php8.5-fpm"
-blog_image_nginx:           "nginx:1.30.6-alpine"            # keep equal to nextcloud_image_nginx
-blog_image_mariadb:         "mariadb:10.11.19"               # 10.11 LTS (until Feb 2028)
-blog_image_redis:           "redis:7.4.12-alpine"            # 7.4 = last Redis 7 line
-blog_image_mysqld_exporter: "prom/mysqld-exporter:v0.21.0"   # keep equal to mysqld_exporter_version
-blog_image_fpm_exporter:    "hipages/php-fpm_exporter:2.2.0"
-blog_image_busybox:         "busybox:1"                      # init containers, floating on purpose
-blog_wp_cli_version:        "2.12.0"                         # + checksum below, update both together
-blog_wp_cli_sha512:         "be928f6b8ca1e8dfb9d2f4b75a13aa4aee0896f8a9a0a1c45cd5d2c98605e6172e6d014dda2e27f88c98befc16c040cbb2bd1bfa121510ea5cdf5f6a30fe8832"
-
 # --- Host packages and binaries (outside K3s) ----------------------------------
 node_exporter_version:         "1.12.1"   # github.com/prometheus/node_exporter/releases
 prometheus_version:            "3.15.1"   # github.com/prometheus/prometheus/releases
@@ -103,7 +92,7 @@ nextcloud_mariadb_repo_version: "10.11"   # MariaDB Community repo series on the
 #   kafka/otelcol components and loki.write with wal { enabled = true } -
 #   none of them are used in config.alloy.j2.
 #
-# mysqld_exporter_version / blog_image_mysqld_exporter (move together)
+# mysqld_exporter_version
 #   2026-10-26 0.20.0 -> 0.21.0: some mysql_global_status_* metrics are now
 #   counters/gauges instead of untyped (dashboards use rate(), unaffected);
 #   a literal "$" in a config-file password must now be written "$$" - none
@@ -159,8 +148,7 @@ nextcloud_mariadb_repo_version: "10.11"   # MariaDB Community repo series on the
 #     exporters: github.com/prometheus/mysqld_exporter/releases,
 #                github.com/hipages/php-fpm_exporter/releases
 #   A changed tag here is rolled out by the deploy playbooks (rollout restart).
-#   A rebuilt image under the SAME tag is picked up by blog-update.yml /
-#   nextcloud-update.yml (role common_image_refresh).
+#   A rebuilt image under the SAME tag is picked up by nextcloud-update.yml (role common_image_refresh).
 #
 # nextcloud_image_fpm
 #   Was floating on the major-only tag "34-fpm" (silently drifts to whatever
@@ -171,7 +159,7 @@ nextcloud_mariadb_repo_version: "10.11"   # MariaDB Community repo series on the
 #   (all app-store apps had a 35 release; occ upgrade ran from the entrypoint
 #   in ~45 s each). The per-host pins in host_vars were dropped afterwards.
 #
-# nextcloud_image_nginx / blog_image_nginx
+# nextcloud_image_nginx
 #   nginx stable branch (even minor). Was 1.31 (mainline) - moved to the
 #   stable 1.30.x line for production. Pinned to the exact patch on purpose:
 #   the floating 1.30-alpine tag stayed on a cached 1.30.3 under
@@ -185,43 +173,6 @@ nextcloud_mariadb_repo_version: "10.11"   # MariaDB Community repo series on the
 # nextcloud_image_collabora
 #   2026-10-26 26.04.5.1.1 -> 26.04.5.2.1 (patch release).
 #   2026-10-11 26.04.3.1.1 -> 26.04.5.1.1 (patch within 26.04).
-#
-# blog_image_wordpress
-#   2026-11-02 7.1.3 -> 7.1.4 (core maintenance release; the image catches up).
-#   2026-10-26 php8.4 -> php8.5 (same WordPress 7.1.3): both Nextclouds already
-#   run 8.5. All plugins, mu-plugins and the theme linted with php:8.5-cli -
-#   no errors, only deprecations (non-canonical (double) casts in
-#   easy-table-of-contents, "case ...;" in the theme customizer).
-#   2026-10-11 7.1.1 -> 7.1.3 (core already 7.1.3 via the nightly minor
-#   updates; the image catches up PHP/OS layers).
-#   2026-09-20 7.1.0 -> 7.1.1 (maintenance + security, 11 security fixes;
-#   image confirmed present on Docker Hub 2026-09-20 after a 2-day lag).
-#
-# blog_image_mariadb
-#   MariaDB 10.11 LTS (supported until Feb 2028), pinned to the exact patch for
-#   the same reason as nginx: the floating 10.11 tag left the node on a stale
-#   cached layer (verified 2026-08-16 - node had digest be981e4113326 while
-#   Docker Hub's 10.11 tag was rebuilt to de61fed4a40d3 on 2026-08-04).
-#   10.11.18 was that rebuilt image, byte for byte.
-#   2026-08-28 10.11.18 -> 10.11.19.
-#
-# blog_image_redis
-#   Object cache for WordPress (pure in-memory, no persistence). Exact patch
-#   pin, same stale-cache reason as MariaDB (node was on 6ab0b6e738177, Hub's
-#   7-alpine had moved to e7723ff73d963). 7.4 is the last Redis 7 LTS line;
-#   moving to 8.x is a deliberate major upgrade, not a patch bump.
-#   2026-11-02 7.4.11-alpine -> 7.4.12-alpine (security: cluster-bus PUBLISH
-#   overflow - cluster mode only, not used here).
-#   2026-09-02 7.4.10-alpine -> 7.4.11-alpine.
-#
-# blog_wp_cli_version / blog_wp_cli_sha512
-#   Supply-chain protection: the init container downloads this phar and the
-#   blog_wordpress role executes it with --allow-root, so an altered binary
-#   would mean arbitrary code execution as root. busybox wget does NOT
-#   validate TLS certificates ("TLS certificate validation not implemented"),
-#   which makes the SHA-512 check the actual integrity control here.
-#   To upgrade, take both values from the release page (the .sha512 asset
-#   sits next to the .phar): github.com/wp-cli/wp-cli/releases
 #
 # prometheus_version
 #   2026-10-22 3.15.0 -> 3.15.1: security release - built with Go 1.27.3

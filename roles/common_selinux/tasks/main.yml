@@ -2,13 +2,11 @@
 # =============================================================================
 # Role: common_selinux
 # Purpose: SELinux enforcing mode + file contexts for the K3s HostPath volumes
-#          of one stack (play variable stack: wordpress | nextcloud). In K3s mode
+#          . In K3s mode
 #          nginx and PHP-FPM run inside containers, so no httpd_* types are
 #          needed; instead the HostPath directories must carry
 #          container_file_t so containerd can read and write them while
 #          SELinux is enforcing.
-#          Replaces the former blog_selinux and next_selinux roles, which were
-#          identical apart from the directories now in selinux_profiles.
 # Target:  AlmaLinux 9
 # =============================================================================
 #
@@ -29,8 +27,6 @@
 # New files inside get the type automatically from the rule.
 #
 # Ansible concepts used here:
-#   selinux_profiles[stack]  one role, two stacks: the playbook sets the
-#                  play variable "stack", the dict picks that stack's dirs
 #   read first, add only what is missing  "semanage fcontext -l -C" lists
 #                  the local rules; the add task runs only "when" a rule is
 #                  not in that list (see the comment at the task)
@@ -68,7 +64,7 @@
     owner: "{{ item.owner }}"
     group: "{{ item.group }}"
     mode: "{{ item.mode }}"
-  loop: "{{ selinux_profiles[stack] }}"
+  loop: "{{ selinux_dirs }}"
   loop_control:
     label: "{{ item.label }}"
 
@@ -91,7 +87,7 @@
 - name: SELinux | Label the HostPath directories as container_file_t
   ansible.builtin.command: >
     semanage fcontext -a -t container_file_t "{{ item.path }}(/.*)?"
-  loop: "{{ selinux_profiles[stack] }}"
+  loop: "{{ selinux_dirs }}"
   loop_control:
     label: "{{ item.label }}"
   when: >-
@@ -101,7 +97,7 @@
 
 - name: SELinux | Apply the SELinux context to the HostPath directories
   ansible.builtin.command: restorecon -Rv "{{ item.path }}"
-  loop: "{{ selinux_profiles[stack] }}"
+  loop: "{{ selinux_dirs }}"
   loop_control:
     label: "{{ item.label }}"
   changed_when: false
@@ -132,7 +128,7 @@
 # -----------------------------------------------------------------------------
 - name: SELinux | Show SELinux contexts on the HostPath directories
   ansible.builtin.command: >
-    ls -Zd {{ selinux_profiles[stack] | map(attribute='path') | join(' ') }}
+    ls -Zd {{ selinux_dirs | map(attribute='path') | join(' ') }}
   register: selinux_ctx
   changed_when: false
   check_mode: false   # read-only query, also runs in --check

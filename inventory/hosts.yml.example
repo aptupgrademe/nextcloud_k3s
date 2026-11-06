@@ -3,12 +3,8 @@
 # so it is kept in exactly one place.
 all:
   children:
-    blog:                         # WordPress servers
-      hosts:
-        www.example.de: {}        # rename to your actual hostname
-        test: {}
     nextcloud:                    # Nextcloud servers
       hosts:
         instance1: {}             # rename to your actual instance name
         instance2: {}
-        test: {}                  # shared with the blog test server
+        test: {}

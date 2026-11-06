@@ -104,8 +104,7 @@
       {{ [{'name': 'node_exporter', 'port': 9100, 'want': node_exporter_version},
           {'name': 'Loki', 'port': 3100, 'want': loki_version},
           {'name': 'Alloy', 'port': 12345, 'want': 'v' ~ alloy_version}]
-         + ([{'name': 'mysqld_exporter', 'port': 9104, 'want': mysqld_exporter_version}]
-            if stack == 'nextcloud' else []) }}
+         + [{'name': 'mysqld_exporter', 'port': 9104, 'want': mysqld_exporter_version}] }}
 
 # Exit code 1 = reboot needed. -s lists the services running replaced code.
 - name: Active versions | Reboot pending?
@@ -138,10 +137,8 @@
          | map('regex_replace', '^docker[.]io/(library/)?', '') | unique | list }}
     _va_expected: >-
       {{ (([kube_state_metrics_image] if kube_state_metrics_image is defined else [])
-          + ([blog_image_wordpress, blog_image_nginx, blog_image_mariadb, blog_image_redis,
-              blog_image_mysqld_exporter, blog_image_fpm_exporter] if stack == 'wordpress' else [])
-          + ([nextcloud_image_fpm, nextcloud_image_nginx, nextcloud_image_collabora,
-              nextcloud_image_fpm_exporter] if stack == 'nextcloud' else []))
+          + [nextcloud_image_fpm, nextcloud_image_nginx, nextcloud_image_collabora,
+             nextcloud_image_fpm_exporter])
          | map('regex_replace', '^docker[.]io/(library/)?', '') | unique | list }}
     _va_rows: []
 

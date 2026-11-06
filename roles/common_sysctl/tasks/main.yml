@@ -122,7 +122,7 @@
   ansible.builtin.command: grubby --update-kernel=ALL --args=psi=1
   when: >-
     sysctl_grubby.stdout_lines | select('match', '^args=')
-    | reject('search', '\bpsi=1\b') | list | length > 0
+    | reject('search', 'psi=1') | list | length > 0
   changed_when: true
 
 - name: Sysctl | psi=1 for kernels installed later (/etc/kernel/cmdline)

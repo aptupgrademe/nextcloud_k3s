@@ -4,7 +4,7 @@
 # =============================================================================
 #
 # Part 2 of nextcloud_verify: judge, report, mail, assert - the Jinja
-# concepts are explained in blog_verify/tasks/report.yml.
+# concepts follow the common_verify role.
 
 - name: Verify | Compute pass/fail for each check
   ansible.builtin.set_fact:

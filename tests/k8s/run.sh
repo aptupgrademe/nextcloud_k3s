@@ -50,7 +50,7 @@ cp -r "$REPO/roles" "$WORK/new/"
 for t in old new; do
   R=$WORK/$t/roles
   grep -rlE "/tmp/k8s-|/tmp/placeholder|/etc/ingress-nginx-defaults|/tmp/ingress-nginx-values|/etc/rancher/k3s/k3s.yaml" \
-    "$R"/{common_k3s,blog_k3s_deploy,next_k3s_deploy} | xargs -r sed -i \
+    "$R"/{common_k3s,next_k3s_deploy} | xargs -r sed -i \
     -e "s#/tmp/k8s-#$WORK/tmpk8s/k8s-#g" -e "s#/tmp/placeholder#$WORK/tmpk8s/placeholder#g" \
     -e "s#/etc/ingress-nginx-defaults#$WORK/nginxdef#g" \
     -e "s#/tmp/ingress-nginx-values#$WORK/tmpk8s/ingress-nginx-values#g" \
@@ -152,8 +152,8 @@ NEW_REV=$(KUBECONFIG=$WORK/kubeconfig HELM_CACHE_HOME=$WORK/helm/cache HELM_CONF
 [ -z "$NEW_REV" ] || { echo "!! new Helm revisions:"; echo "$NEW_REV"; FAIL=1; }
 
 # Negative test: these two changes must show up in --check, nothing else.
-run new negative --check -e blog_image_redis=redis:0.0.0-test -e cert_manager_chart_version=1.0.0
-for want in 'Redis | Apply Deployment' 'cert-manager | Install/upgrade cert-manager'; do
+run new negative --check -e nextcloud_image_nginx=nginx:0.0.0-test -e cert_manager_chart_version=1.0.0
+for want in 'Nextcloud | Apply' 'cert-manager | Install/upgrade cert-manager'; do
   grep -qF "$want" "$WORK/negative.changed" || { echo "!! negative test missed: $want"; FAIL=1; }
 done
 

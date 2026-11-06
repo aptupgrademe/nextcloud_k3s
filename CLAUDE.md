@@ -12,20 +12,20 @@ and in the README. This file only points the way and lists the traps.
 
 ## Layout
 
-- Playbooks: `blog.yml` (WordPress host), `nextcloud-k3s.yml` (Nextcloud
-  hosts), `blog-update.yml`, `nextcloud-update.yml` (updates, one host at a time).
-- Roles: `common_*` (both stacks), `blog_*`, `next_*`. Shared roles decide by
-  the play variable `stack` (`wordpress` / `nextcloud`), not by group names.
+- Playbooks: `nextcloud-k3s.yml` (Nextcloud hosts), `nextcloud-update.yml`
+  (updates, one host at a time).
+- Roles: `common_*` (base), `next_*` (Nextcloud).
 - Variables: `inventory/group_vars/all/main.yml`, pinned versions in
   `inventory/group_vars/all/versions.yml`. Real `host_vars` are gitignored;
   `*.example` files show the structure.
-- Backup scripts: `scripts/nextcloud-backup/`, `scripts/wordpress-backup/`
-  (live copies run on the backup machines; keep both in sync).
+- Backup scripts: `scripts/nextcloud-backup/` (live copies run on the backup
+  machines; keep both in sync).
+- History: split from `www_k3s` (archived, tag `final-before-split`). The blog has
+  its own repository; hardening fixes are not shared automatically, so check
+  whether a security fix here also applies there.
 
 ## How we work
 
-- **Every change must work for both stacks** (blog and Nextcloud) – check and
-  say so explicitly.
 - **Lint the whole repo** before committing: `ansible-lint` (the CI runs it on
   everything, not per role). Pre-commit runs gitleaks, yamllint, ansible-lint.
 - **Check mode first** (`--check --diff`), then the real run, **one host at a
@@ -125,23 +125,6 @@ and in the README. This file only points the way and lists the traps.
   them with `occ preview:cleanup`, never with `rm`.
 - The preview JPEG quality is an app config value (`preview jpeg_quality`),
   not a `config.php` key.
-
-### WordPress
-- **wp-cli only as `www-data`** – `--allow-root` once left root-owned cache files.
-- **Write `post_content` only through WordPress functions** (`wp_slash`) – a
-  direct update stripped backslashes from code examples.
-- Read the live post and its `post_modified` before changing it; never overwrite
-  edits made in the meantime. DB dump first.
-- Some posts store `\r\n` line endings (the older English originals) – a
-  string replacement written with `\n` silently matches nothing; check both.
-- `wp_insert_post()` from `wp eval`/`eval-file` has no current user: pass
-  `post_author` (20 posts/pages had author 0 – empty byline link to `/author/`,
-  404, no author in the schema). Link posts by permalink, not `?p=ID`.
-- Set the featured image **before** publishing (Yoast builds its og:image then).
-- `wp cache flush` empties the object cache only; the page cache needs
-  `wp_cache_clear_cache()`.
-- CompressX creates its WebP/AVIF companions automatically only with
-  `compressx_auto_optimize` on (set by `blog_wordpress`).
 
 ### Monitoring and alerts
 - **Grafana alert rules need `condition`**; with `execErrState: OK` a broken rule

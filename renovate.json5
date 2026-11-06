@@ -15,7 +15,7 @@
   "pre-commit": { enabled: true },
 
   customManagers: [
-    // Container images:  blog_image_redis: "redis:7.4.11-alpine"
+    // Container images:  nextcloud_image_nginx: "nginx:1.30.6-alpine"
     {
       customType: "regex",
       description: "Container images in group_vars",
@@ -56,15 +56,6 @@
     },
     {
       customType: "regex",
-      description: "WP-CLI",
-      managerFilePatterns: ["/^inventory/group_vars/all/versions\\.yml$/"],
-      matchStrings: ['\\nblog_wp_cli_version:\\s+"(?<currentValue>[^"]+)"'],
-      depNameTemplate: "wp-cli/wp-cli",
-      datasourceTemplate: "github-releases",
-      extractVersionTemplate: "^v(?<version>.+)$",
-    },
-    {
-      customType: "regex",
       description: "helm-diff plugin",
       managerFilePatterns: ["/^inventory/group_vars/all/versions\\.yml$/"],
       matchStrings: ['\\nhelm_diff_version:\\s+"(?<currentValue>[^"]+)"'],
@@ -96,7 +87,7 @@
 
   packageRules: [
     // Keep the image variant: nextcloud:34.0.4-fpm stays -fpm, nginx stays
-    // -alpine, wordpress stays -php8.5-fpm (Renovate's docker versioning
+    // -alpine (Renovate's docker versioning
     // treats the suffix as compatibility marker already - stated explicitly).
     {
       matchDatasources: ["docker"],
@@ -114,16 +105,6 @@
       matchDatasources: ["docker"],
       matchPackageNames: ["busybox"],
       enabled: false,
-    },
-    // WP-CLI is pinned together with its SHA-512 (blog_wp_cli_sha512), which
-    // Renovate cannot compute. Merging a version-only PR would make the blog's
-    // init container reject the download. Needs approval + manual checksum.
-    {
-      matchPackageNames: ["wp-cli/wp-cli"],
-      dependencyDashboardApproval: true,
-      prBodyNotes: [
-        "**Also update `blog_wp_cli_sha512`** from the `.sha512` asset of this release - otherwise the WordPress init container rejects the phar.",
-      ],
     },
     // helm-diff is pinned together with its SHA-256 (helm_diff_sha256).
     {
