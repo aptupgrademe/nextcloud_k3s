@@ -529,7 +529,7 @@
     <td>ClusterIP-Adressen der K8s Services</td>
   </tr>
   <tr>
-    <td><code>82.165.165.230</code></td>
+    <td><code>192.0.2.10</code></td>
     <td>Öffentliche Host-IP (Testserver)</td>
     <td>DNS, WOPI-Allowlist, ExternalService-Endpoints</td>
   </tr>
@@ -576,7 +576,7 @@
   gepflegten Endpoints, die auf die öffentliche IP des Hosts zeigen.
 </p>
 <pre><code>Pod → mariadb.nextcloud.svc.cluster.local (10.43.x.x)
-   → Endpoint: 82.165.165.230:3306
+   → Endpoint: 192.0.2.10:3306
    → nftables accept für 10.42.0.0/16 auf :3306</code></pre>
 <p>
   Der MariaDB-Datenbanknutzer ist auf den Pod-CIDR eingeschränkt
@@ -616,7 +616,7 @@
 wopi_allowed_hosts:
   - "10.42.0.0/16"   # Pod-CIDR (Collabora-Pod → Nextcloud WOPI)
   - "10.43.0.0/16"   # Service-CIDR
-  - "collabora.inspired-as-code.de"</code></pre>
+  - "collabora.example.de"</code></pre>
 
 <h3>notify_push (Client Push / High Performance Backend)</h3>
 <p>
@@ -1801,7 +1801,7 @@ curl -sI "https://nextcloud.example.com/dist/core-main.js" | grep content-type
 k3s kubectl exec -n nextcloud deployment/nextcloud -c nextcloud-fpm -- \
   runuser -u www-data -- php /var/www/html/occ \
   config:app:set richdocuments wopi_allowlist \
-  --value="10.42.0.0/16,10.43.0.0/16,collabora.example.de,82.165.165.230"</code></pre>
+  --value="10.42.0.0/16,10.43.0.0/16,collabora.example.de,192.0.2.10"</code></pre>
 
 <h3>Zertifikat wird nicht ausgestellt</h3>
 <pre><code># cert-manager Logs prüfen:
