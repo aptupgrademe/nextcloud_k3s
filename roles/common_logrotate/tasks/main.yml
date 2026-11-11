@@ -113,3 +113,14 @@
           notifempty
           create 0640 root root
       }
+
+# NO rule for the K3s containerd log: K3s rotates
+# /var/lib/rancher/k3s/agent/containerd/containerd.log itself (lumberjack in
+# pkg/agent/containerd/containerd.go: 50 MB, 3 backups, 28 days, gzip -> e.g.
+# containerd-2026-10-29T01-35-02.839.log.gz next to it). A logrotate rule
+# added on 2026-11-11 duplicated that and was removed the same day - this
+# task deletes it from hosts that already received it.
+- name: logrotate | Remove the redundant K3s containerd rule (K3s rotates it itself)
+  ansible.builtin.file:
+    path: /etc/logrotate.d/k3s-containerd
+    state: absent

@@ -55,10 +55,26 @@
 # role: a live run legitimately found package-upgrade-driven changes, but the
 # task treated rc != 0 as a failure and aborted the play before the next task
 # could activate the new database (verified live 2026-08-26).
+# CPU count read on the host: the play gathers only the "min" fact subset,
+# which has no processor_vcpus - the former
+# ansible_facts['processor_vcpus'] | default(1) therefore always gave ONE
+# worker (found 2026-11-11 in the journal: "aide --update --workers=1" on
+# the 8-core cvjm). nproc is read-only, so it also runs in --check.
+- name: AIDE refresh | Count the CPUs for --workers
+  ansible.builtin.command: nproc
+  register: aide_nproc
+  changed_when: false
+  check_mode: false
+  when: aide_db.stat.exists
+
+# In the journal this transient unit shows as "run-uNNNN.service: Failed
+# ... status=4/NOPERMISSION" after every run that found differences:
+# systemd names exit code 4 after the LSB meaning, for AIDE it only means
+# "changed files recorded" (see above) - not a permission problem.
 - name: AIDE refresh | Compare with the baseline and write the new database (one scan)
   ansible.builtin.command: >-
     systemd-run --wait --pipe --quiet --collect -p Nice=10 --
-    aide --update --workers={{ ansible_facts['processor_vcpus'] | default(1) }}
+    aide --update --workers={{ aide_nproc.stdout | default('1') }}
   register: aide_update
   changed_when: false   # the change is the activation below
   failed_when: false
