@@ -10,6 +10,15 @@ trivy_mail: "{{ email }}"
 # Only findings of these severities WITH a fixed version count as
 # "actionable" - they go into the mail when they are new.
 trivy_mail_severities: [CRITICAL, HIGH]
+# Of those, these mail the same night; the rest (HIGH) is collected and
+# mailed once a week as one digest - Monday is update day anyway, the
+# image refresh then fixes most of it. Findings fixed before the digest
+# drop out of it. Decided 2026-11-11 (Raphael): fewer mails, CRITICAL
+# still at once.
+trivy_mail_now_severities: [CRITICAL]
+# Digest weekday as in Python's date.weekday(): 0 = Monday. If the host
+# was down that day, the next run catches up (digest older than 7 days).
+trivy_mail_digest_weekday: 0
 # Accepted findings, each with a reason: [{id: CVE-..., reason: "..."}]
 # Trivy skips them (written to .trivyignore). Empty on purpose - every
 # entry is a decision, not a default.

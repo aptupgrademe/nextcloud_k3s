@@ -357,7 +357,7 @@ ansible-vault encrypt inventory/host_vars/<host>/vault.yml
 | `common_cis_hardening` | CIS AlmaLinux 9 Benchmark: AIDE, kernel modules, cron/sudo, mount options |
 | `common_aide_refresh` | Refreshes the AIDE baseline after approved changes, so the nightly check isn't a false alarm |
 | `common_clamav` | Nightly ClamAV scan of the Nextcloud data |
-| `common_trivy` | Nightly Trivy scan (pinned version + sha256) of every running image from containerd; counts in Grafana via the node_exporter textfile collector, mail only on NEW fixable CRITICAL/HIGH findings |
+| `common_trivy` | Nightly Trivy scan (pinned version + sha256) of every running image from containerd; counts in Grafana via the node_exporter textfile collector, mail only on NEW fixable findings (CRITICAL the same night, HIGH as a Monday digest) |
 | `common_selinux` | SELinux enforcing + `container_file_t` for the HostPath dirs (`selinux_dirs`); the pods run as `container_t` since `common_k3s` sets `selinux: true` with the `k3s-selinux` policy (2026-10-19) |
 | `common_selinux_monitoring` | Own SELinux domains (`homelab_*` modules) for Prometheus, node_exporter, mysqld_exporter and Grafana – enforcing on both Nextcloud hosts since 2026-10-21 |
 | `common_verify` | Smoke checks used by `nextcloud_verify` (17, incl. every pod process `container_t` and all per-jail fail2ban sets present) |

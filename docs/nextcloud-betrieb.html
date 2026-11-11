@@ -2174,7 +2174,7 @@ oder wieder einbaut. Beides geprüft am 2026-09-14.</p>
   </tr>
   <tr>
     <td>Image-Scan</td>
-    <td>Trivy (gepinnte Version + sha256) scannt jede Nacht um 05:15 alle laufenden Images direkt aus containerd (Registry nur als Rückfall); Zahlen pro Image/Schweregrad in Grafana (<code>trivy_image_vulnerabilities</code>, Textfile-Collector des node_exporter). Mail nur, wenn ein behebbarer CRITICAL/HIGH-Befund <em>neu</em> ist; Grafana-Alarm nur bei fehlgeschlagenem oder veraltetem Scan. Akzeptierte Befunde mit Begründung: <code>trivy_ignore</code>. Auf allen drei Servern seit 20.10.2026 (Blog seit 19.10.2026).</td>
+    <td>Trivy (gepinnte Version + sha256) scannt jede Nacht um 05:15 alle laufenden Images direkt aus containerd (Registry nur als Rückfall); Zahlen pro Image/Schweregrad in Grafana (<code>trivy_image_vulnerabilities</code>, Textfile-Collector des node_exporter). Mail nur, wenn ein behebbarer CRITICAL/HIGH-Befund <em>neu</em> ist – CRITICAL sofort, HIGH gesammelt montags (seit 11.11.2026); Grafana-Alarm nur bei fehlgeschlagenem oder veraltetem Scan. Akzeptierte Befunde mit Begründung: <code>trivy_ignore</code>. Auf allen drei Servern seit 20.10.2026 (Blog seit 19.10.2026).</td>
     <td><code>common_trivy</code></td>
   </tr>
   <tr>

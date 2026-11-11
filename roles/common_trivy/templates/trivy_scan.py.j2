@@ -6,17 +6,22 @@
 #      the fallback for images containerd cannot export any more)
 #   3. write node_exporter textfile metrics (Grafana) and one JSON per image
 #   4. mail ONLY the fixable CRITICAL/HIGH findings that were not there on
-#      the previous run - a finding that stays does not mail again
+#      the previous run - a finding that stays does not mail again.
+#      CRITICAL mails the same night; new HIGH findings wait in PENDING
+#      and go out as one weekly digest (trivy_mail_digest_weekday)
 import datetime, json, os, re, subprocess, sys
 
 TRIVY = "/usr/local/bin/trivy"
 CACHE = "{{ trivy_cache_dir }}"
 REPORTS = "{{ trivy_report_dir }}/reports"
 STATE = "{{ trivy_report_dir }}/last-findings.json"
+PENDING = "{{ trivy_report_dir }}/digest-pending.json"
 PROM = "{{ trivy_textfile_dir }}/trivy.prom"
 IGNORE = "{{ trivy_report_dir }}/.trivyignore"
 MAIL_TO = "{{ trivy_mail }}"
 MAIL_SEV = {{ trivy_mail_severities | to_json }}
+MAIL_NOW = {{ trivy_mail_now_severities | to_json }}
+DIGEST_DAY = {{ trivy_mail_digest_weekday | int }}
 # image repository -> review date (YYYY-MM-DD); see trivy_accepted_images
 ACCEPTED = {{ (trivy_accepted_images | default([])) | items2dict(key_name='image', value_name='review') | to_json }}
 HOST = "{{ inventory_hostname }}"
@@ -37,6 +42,20 @@ def running_images():
                           "--field-selector=status.phase=Running", "-o", f"jsonpath={jp}"],
                          check=True, capture_output=True, text=True).stdout
     return sorted({line.strip() for line in out.splitlines() if line.strip()})
+
+
+def mail(subject, head, items, findings, gone):
+    """Send one Trivy mail; True when mail(1) accepted it."""
+    body = [head, f"Open in total: {len(findings)}, gone since the last run: {len(gone)}.", "",
+            "Fix: a rebuilt image under the same tag -> nextcloud-update.yml",
+            "(image refresh); otherwise raise the image pin in versions.yml.", ""]
+    for f in items:
+        body.append(f'{f["severity"]:8} {f["id"]:20} {f["pkg"]} {f["installed"]} -> {f["fixed"]}')
+        body.append(f'         {f["image"]}  ({f["target"]})')
+    body += ["", f"Reports: {REPORTS}/", "Grafana: trivy_image_vulnerabilities"]
+    r = subprocess.run(["mail", "-s", subject, MAIL_TO],
+                       input="\n".join(body) + "\n", text=True, check=False)
+    return r.returncode == 0
 
 
 def esc(v):
@@ -139,18 +158,40 @@ def main():
         json.dump(findings, fh, indent=1)
     os.replace(STATE + ".tmp", STATE)
 
-    if new:
-        body = [f"Trivy found {len(new)} new fixable {'/'.join(MAIL_SEV)} finding(s) on {HOST}.",
-                f"Open in total: {len(findings)}, gone since the last run: {len(gone)}.", "",
-                "Fix: a rebuilt image under the same tag -> nextcloud-update.yml",
-                "(image refresh); otherwise raise the image pin in versions.yml.", ""]
-        for f in new:
-            body.append(f'{f["severity"]:8} {f["id"]:20} {f["pkg"]} {f["installed"]} -> {f["fixed"]}')
-            body.append(f'         {f["image"]}  ({f["target"]})')
-        body += ["", f"Reports: {REPORTS}/", "Grafana: trivy_image_vulnerabilities"]
-        subprocess.run(["mail", "-s", f"[{HOST}] Trivy: {len(new)} new fixable finding(s)", MAIL_TO],
-                       input="\n".join(body) + "\n", text=True, check=False)
-    print(f"images scanned, failed: {len(failed)}; open fixable: {len(findings)}, new: {len(new)}, gone: {len(gone)}")
+    # Pending digest: new non-urgent findings since the last digest. A
+    # finding that is fixed (gone) before the digest drops out again.
+    today = datetime.date.today()
+    try:
+        with open(PENDING) as fh:
+            pend = json.load(fh)
+    except (OSError, ValueError):
+        pend = {}
+    queued = {k: v for k, v in (pend.get("findings") or {}).items() if k in findings}
+    last_digest = pend.get("last_digest") or today.isoformat()
+    urgent = [f for f in new if f["severity"] in MAIL_NOW]
+    for k in sorted(findings):
+        if k not in previous and findings[k]["severity"] not in MAIL_NOW:
+            queued[k] = findings[k]
+
+    if urgent:
+        mail(f"[{HOST}] Trivy: {len(urgent)} new fixable {'/'.join(MAIL_NOW)} finding(s)",
+             f"Trivy found {len(urgent)} new fixable {'/'.join(MAIL_NOW)} finding(s) on {HOST}.",
+             urgent, findings, gone)
+    overdue = (today - datetime.date.fromisoformat(last_digest)).days >= 7
+    if queued and (today.weekday() == DIGEST_DAY or overdue):
+        if mail(f"[{HOST}] Trivy weekly: {len(queued)} new fixable finding(s)",
+                f"Weekly digest: {len(queued)} fixable finding(s) found on {HOST} since the last digest "
+                f"and still open ({'/'.join(s for s in MAIL_SEV if s not in MAIL_NOW)}; "
+                f"{'/'.join(MAIL_NOW)} mails the same night).",
+                [queued[k] for k in sorted(queued)], findings, gone):
+            queued, last_digest = {}, today.isoformat()
+    elif not queued:
+        last_digest = today.isoformat()   # nothing waiting: the week starts now
+    with open(PENDING + ".tmp", "w") as fh:
+        json.dump({"last_digest": last_digest, "findings": queued}, fh, indent=1)
+    os.replace(PENDING + ".tmp", PENDING)
+    print(f"images scanned, failed: {len(failed)}; open fixable: {len(findings)}, new: {len(new)}, "
+          f"gone: {len(gone)}, mailed now: {len(urgent)}, waiting for the digest: {len(queued)}")
     return 1 if failed else 0
 
 
