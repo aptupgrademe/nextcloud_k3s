@@ -394,7 +394,7 @@ ingress_nginx_chart_version: "2.8.0"
 cert_manager_chart_version:  "1.21.3"
 
 # Container images
-nextcloud_image_fpm:  "nextcloud:35.0.2-fpm"
+nextcloud_image_fpm:  "nextcloud:35.0.3-fpm"
 ```
 
 ---

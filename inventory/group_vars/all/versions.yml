@@ -28,7 +28,7 @@ cert_manager_chart_version:  "1.21.3"         # charts.jetstack.io index.yaml (l
 kube_state_metrics_image:    "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.20.0"  # github.com/kubernetes/kube-state-metrics/releases
 
 # --- Nextcloud containers -------------------------------------------------------
-nextcloud_image_fpm:          "nextcloud:35.0.2-fpm"         # majors one at a time (35 -> 36)
+nextcloud_image_fpm:          "nextcloud:35.0.3-fpm"         # majors one at a time (35 -> 36)
 nextcloud_image_nginx:        "nginx:1.30.6-alpine"          # nginx stable branch, see notes
 nextcloud_image_collabora:    "collabora/code:26.04.5.2.1"
 nextcloud_image_fpm_exporter: "hipages/php-fpm_exporter:2.2.0"
@@ -158,6 +158,7 @@ nextcloud_mariadb_repo_version: "10.11"   # MariaDB Community repo series on the
 #   2026-11-03 34.0.5 -> 35.0.2 (major): cvjm first, then sofie, both clean
 #   (all app-store apps had a 35 release; occ upgrade ran from the entrypoint
 #   in ~45 s each). The per-host pins in host_vars were dropped afterwards.
+#   2026-11-14 35.0.2 -> 35.0.3 (patch, image on Docker Hub since 2026-11-14 00:23).
 #
 # nextcloud_image_nginx
 #   nginx stable branch (even minor). Was 1.31 (mainline) - moved to the
