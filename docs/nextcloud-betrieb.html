@@ -873,7 +873,7 @@ k3s kubectl get secret nextcloud-secrets -n nextcloud \
 <pre><code># inventory/group_vars/all/versions.yml
 nextcloud_image_fpm:       "nextcloud:35.0.3-fpm"       # Nextcloud PHP-FPM
 nextcloud_image_nginx:     "nginx:1.30.6-alpine"        # nginx Sidecar
-nextcloud_image_collabora: "collabora/code:26.04.5.2.1" # Collabora CODE
+nextcloud_image_collabora: "collabora/code:26.04.6.1.1" # Collabora CODE
 nextcloud_image_busybox:   "busybox:1"                  # Init-Container</code></pre>
 
 <h3>Tag-Strategie</h3>
@@ -895,9 +895,9 @@ nextcloud_image_busybox:   "busybox:1"                  # Init-Container</code><
     <td><code>nginx:1.30.6-alpine</code> (aktuell)</td>
   </tr>
   <tr>
-    <td><code>26.04.5.2.1</code></td>
+    <td><code>26.04.6.1.1</code></td>
     <td>Collabora-Release-Patch; wird regelmäßig gegen Docker Hub geprüft</td>
-    <td><code>collabora/code:26.04.5.2.1</code> (aktuell)</td>
+    <td><code>collabora/code:26.04.6.1.1</code> (aktuell)</td>
   </tr>
 </table>
 
