@@ -59,7 +59,7 @@ metadata:
   name: kube-state-metrics
 rules:
   - apiGroups: [""]
-    resources: [configmaps, endpoints, limitranges, namespaces, nodes, persistentvolumeclaims,
+    resources: [configmaps, limitranges, namespaces, nodes, persistentvolumeclaims,
                 persistentvolumes, pods, replicationcontrollers, resourcequotas, services]
     verbs: [list, watch]
   - apiGroups: [apps]
@@ -121,7 +121,10 @@ spec:
           args:
             # Secrets are deliberately not watched: their metadata is not
             # needed and the role grants no access to them.
-            - --resources=configmaps,cronjobs,daemonsets,deployments,endpoints,ingresses,jobs,limitranges,namespaces,networkpolicies,nodes,persistentvolumeclaims,persistentvolumes,poddisruptionbudgets,pods,replicasets,replicationcontrollers,resourcequotas,services,statefulsets
+            # endpointslices instead of endpoints: v1 Endpoints is deprecated since
+            # Kubernetes 1.33 and every list/watch logged a warning (about 140 lines
+            # a day per host, found 2026-11-17). No rule or dashboard uses kube_endpoint_*.
+            - --resources=configmaps,cronjobs,daemonsets,deployments,endpointslices,ingresses,jobs,limitranges,namespaces,networkpolicies,nodes,persistentvolumeclaims,persistentvolumes,poddisruptionbudgets,pods,replicasets,replicationcontrollers,resourcequotas,services,statefulsets
             - --port=8080
             - --telemetry-port=8081
           ports:
