@@ -82,12 +82,11 @@ ingress_admin_geo_enabled: "{{ fw_ssh_geo_countries | default([]) | length > 0 }
 # way round: common_k3s and common_firewall first, then the Ingress side.
 ingress_http3_enabled: false
 
-# HTTP/2 on the ingress. OFF since 2026-11-20 as a stopgap: nginx 1.31.9 fixed
-# "Memory corruption in HTTP/2 flow control" (major), but the F5 controller
-# (up to v5.8.0) still bundles nginx 1.31.8. Clients fall back to HTTP/1.1.
-# Switch back to true together with the controller update that bundles a fixed
-# nginx (~/nginx-ingress-watch on HP3 mails when it is out).
-ingress_http2_enabled: false
+# HTTP/2 on the ingress. Was OFF 2026-11-20 as a stopgap for "Memory corruption
+# in HTTP/2 flow control" (fixed in nginx 1.31.9); back ON with controller 5.8.0
+# (chart 2.9.0), whose image bundles nginx 1.31.9. Clients fall back to HTTP/1.1
+# when it is off.
+ingress_http2_enabled: true
 
 # worker_shutdown_timeout of the ingress nginx, empty = no limit. At the end of
 # it, connections of old workers are cut, including running downloads and uploads.

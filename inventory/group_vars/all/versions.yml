@@ -23,7 +23,7 @@ k3s_version:                 "v1.37.2+k3s1"   # github.com/k3s-io/k3s/releases
 helm_version:                "v4.3.2"         # github.com/helm/helm/releases
 helm_diff_version:           "3.15.15"        # github.com/databus23/helm-diff/releases + checksum below
 helm_diff_sha256:            "504e99410611daa70702362e1b10dc74929df8a912cb3f6b5d21d1ee9d0cb7d9"
-ingress_nginx_chart_version: "2.8.0"          # F5 nginx-ingress chart, helm.nginx.com/stable index.yaml
+ingress_nginx_chart_version: "2.9.0"          # F5 nginx-ingress chart, helm.nginx.com/stable index.yaml
 cert_manager_chart_version:  "1.21.3"         # charts.jetstack.io index.yaml (listed there as v1.21.3)
 kube_state_metrics_image:    "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.20.0"  # github.com/kubernetes/kube-state-metrics/releases
 
@@ -121,6 +121,13 @@ nextcloud_mariadb_repo_version: "10.11"   # MariaDB Community repo series on the
 #   release's checksums file.
 #
 # ingress_nginx_chart_version
+#   2026-11-20 2.8.0 -> 2.9.0 (controller 5.7.0 -> 5.8.0): security fix. The image
+#   nginx/nginx-ingress:5.8.0 bundles nginx 1.31.9 (checked with `nginx -v` in the
+#   published image) although the GitHub release notes still say "NGINX to 1.31.8" -
+#   the later "sync: security hardening" commit on release-5.8 raised it. Taken
+#   2 days after release as a security exception to the two-week rule (like the
+#   1.30.7 sidecar). Features only (connectionLimit policy, JWT claims), no breaking
+#   changes listed; new CRD fields are unused, so Helm not upgrading CRDs is harmless.
 #   2026-10-16 2.7.3 -> 2.8.0 (controller 5.6.3 -> 5.7.0): security hardening
 #   and bug fixes, no breaking changes listed; check helm diff on rollout.
 #   2026-10-13 2.6.4 -> 2.7.3 (controller 5.5.4 -> 5.6.3). The controller
