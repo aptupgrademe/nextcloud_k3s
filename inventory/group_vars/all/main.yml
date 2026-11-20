@@ -7,12 +7,14 @@
 # Vendor repositories without security metadata: dnf-automatic (security
 # updates only) never updates them, update-vendor-repos takes every update
 # from them at 02:15 (common_dnf_automatic). grafana: common_grafana,
-# rancher-k3s-common-stable: k3s-selinux (common_k3s). The MariaDB repo
-# (next_packages) has no updateinfo either - deliberately not listed yet,
-# an automatic database update is a separate decision.
+# rancher-k3s-common-stable: k3s-selinux (common_k3s), mariadb: MariaDB
+# Community repo (next_packages; the repo pins the series, e.g. 10.11, so
+# only patch releases come in). The updated mariadbd is restarted at 03:45 by
+# restart-updated-services, the systemd drop-in (SELinux domain) stays.
 dnf_automatic_vendor_repos:
   - grafana
   - rancher-k3s-common-stable
+  - mariadb
 
 # =============================================================================
 # K3s / Kubernetes cluster settings

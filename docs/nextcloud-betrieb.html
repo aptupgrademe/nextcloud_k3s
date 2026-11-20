@@ -2164,7 +2164,7 @@ oder wieder einbaut. Beides geprüft am 2026-09-14.</p>
   </tr>
   <tr>
     <td>Patches</td>
-    <td>dnf-automatic: Security-Updates täglich automatisch zwischen 01:00 und 02:00 Uhr, danach automatischer Reboot um 03:30 Uhr falls nötig (Kernel, glibc, systemd); ohne Reboot startet <code>restart-updated-services</code> um 03:45 die Dienste neu, die noch ersetzten Code ausführen (<code>needs-restarting -s</code>; sshd erst nach <code>sshd -t</code>, ausgenommen dbus, systemd, k3s, auditd u.&nbsp;a.; Mail nur, wenn etwas neu gestartet wurde); AIDE übernimmt den neuen Stand um 04:00 Uhr Hersteller-Repos ohne Sicherheitsmarkierungen (Grafana, Rancher/k3s-selinux) aktualisiert dnf-automatic nie; das übernimmt <code>update-vendor-repos</code> um 02:15 (Liste: <code>dnf_automatic_vendor_repos</code>). Das MariaDB-Repo ist bewusst noch nicht dabei.</td>
+    <td>dnf-automatic: Security-Updates täglich automatisch zwischen 01:00 und 02:00 Uhr, danach automatischer Reboot um 03:30 Uhr falls nötig (Kernel, glibc, systemd); ohne Reboot startet <code>restart-updated-services</code> um 03:45 die Dienste neu, die noch ersetzten Code ausführen (<code>needs-restarting -s</code>; sshd erst nach <code>sshd -t</code>, ausgenommen dbus, systemd, k3s, auditd u.&nbsp;a.; Mail nur, wenn etwas neu gestartet wurde); AIDE übernimmt den neuen Stand um 04:00 Uhr Hersteller-Repos ohne Sicherheitsmarkierungen (Grafana, Rancher/k3s-selinux, MariaDB) aktualisiert dnf-automatic nie; das übernimmt <code>update-vendor-repos</code> um 02:15 (Liste: <code>dnf_automatic_vendor_repos</code>). Bei MariaDB kommen nur Patch-Versionen der im Repo festgelegten Serie; der Datenbankdienst wird um 03:45 neu gestartet.</td>
     <td><code>common_dnf_automatic</code></td>
   </tr>
   <tr>

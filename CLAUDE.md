@@ -51,8 +51,9 @@ and in the README. This file only points the way and lists the traps.
 - **dnf-automatic with `upgrade_type = security` never touches vendor repositories** (Grafana, Rancher
   k3s-selinux, MariaDB, nginx.org on the blog): they publish no updateinfo, so nothing in them counts as a
   security fix (found 2026-11-20). `update-vendor-repos` (common_dnf_automatic, list in
-  `dnf_automatic_vendor_repos`) takes every update from the listed repos at 02:15. MariaDB is deliberately
-  not listed yet (automatic database updates are a separate decision).
+  `dnf_automatic_vendor_repos`) takes every update from the listed repos at 02:15, MariaDB included (only
+  patch releases of the series pinned in the repo; mariadbd is restarted at 03:45 - check `ps -eZ | grep mariadbd`
+  shows mysqld_t after the first automatic update).
 
 ### SELinux
 - **NoNewPrivileges blocks domain transitions.** Under NNP the policy only
