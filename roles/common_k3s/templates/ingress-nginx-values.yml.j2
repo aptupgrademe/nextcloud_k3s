@@ -41,7 +41,10 @@ controller:
 
       # --- HTTP/2 ---
       # Enables multiplexing, header compression (HPACK) and ALPN negotiation.
-      http2: "true"
+      # ingress_http2_enabled (group_vars): can be switched off while the
+      # controller bundles an nginx with an open HTTP/2 vulnerability; clients
+      # fall back to HTTP/1.1.
+      http2: "{{ 'true' if ingress_http2_enabled | default(true) | bool else 'false' }}"
 
       # --- Upstream connection reuse ---
       # Without this, the controller opens a new TCP connection to the backend
