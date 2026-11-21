@@ -159,6 +159,14 @@ and in the README. This file only points the way and lists the traps.
   through `systemd-run`: `ProtectKernelModules` hides `/usr/lib/modules` in SSH sessions.
 - No DNF modules, no Redis (Valkey, same `redis_t` types), no `/etc/systemd/journald.conf`, audit rules in
   the `audit-rules` package, k3s-selinux only in Rancher's testing channel (`rpm-testing.rancher.io`).
+- **EL10 runs MariaDB 11.8** (`mariadb11.8-server`, Nextcloud 35's recommendation; 10.11 is its minimum).
+  11.8 calls `chown` – `~@privileged` killed it with SIGSYS (`status=31/SYS`, audit `SECCOMP syscall=92`).
+  **For `SystemCallFilter` the later line wins**: an allow (`@chown`) must sit in a drop-in that sorts
+  after the one with `~@privileged` (`99-zz-el10.conf`). A package swap left `mariadb.service` disabled.
+- **`restorecon -F` resets the SELinux user too**: files written from an SSH session are `unconfined_u`, so
+  `-F` "fixed" them on every run and restarted services for nothing. Use `-R` without `-F`.
+- **`ssh` in a script swallows stdin** – a later `read` gets EOF and `set -e` ends the script silently.
+  Give such ssh calls `</dev/null`.
 
 ### CI
 - **No apostrophe in a comment inside a `shell:` block** – ansible-lint fails
