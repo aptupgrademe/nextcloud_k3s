@@ -20,6 +20,7 @@ logging_log_file(homelab_grafana_log_t)
 # it from the file context when it creates it). The .fc says /var/run/grafana:
 # the policy looks up /run paths as /var/run (file_contexts.subs_dist), an
 # entry for /run/grafana never matched (found while testing, 2026-10-20).
+{# EL10 reverses that alias ("/var/run /run"), so the .fc takes os_selinux_run_dir (inventory/group_vars/all/os.yml): /var/run on EL9, /run on EL10. Jinja comment on purpose - it does not end up in the .te, so the module on EL9 hosts stays byte-identical. #}
 type homelab_grafana_run_t;
 files_pid_file(homelab_grafana_run_t)
 

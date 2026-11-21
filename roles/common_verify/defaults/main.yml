@@ -19,5 +19,5 @@ verify_daemon_domains:
   - {comm: crond,           domain: crond_t}
   - {comm: k3s-server,      domain: container_runtime_t}
   - {comm: mariadbd,        domain: mysqld_t}
-  - {comm: redis-server,    domain: redis_t}
+  - {comm: "{{ nextcloud_kv_server_comm }}", domain: redis_t}   # redis-server (EL9) or valkey-server (EL10)
   - {comm: mysqld_exporter, domain: homelab_mysqld_exporter_t}

@@ -3,5 +3,5 @@
 
 - name: Restart Redis
   ansible.builtin.service:
-    name: redis
+    name: "{{ nextcloud_kv_name }}"
     state: restarted

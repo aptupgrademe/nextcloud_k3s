@@ -7,7 +7,7 @@
 [![Nextcloud](https://img.shields.io/badge/Nextcloud-35-0082C9.svg)](https://nextcloud.com/)
 
 Ansible playbooks to deploy and manage internet-facing servers
-(K3s on AlmaLinux 9) fully automated.
+(K3s on AlmaLinux 9; tested against AlmaLinux 10) fully automated.
 
 The goal is to be able to rebuild any machine from scratch using a single
 `ansible-playbook` command.
@@ -224,7 +224,7 @@ issuance succeeds.
 
 ### Internet servers (AlmaLinux 9)
 - Fresh AlmaLinux 9 install
-- Why not AlmaLinux 10 (available since May 2025)? 9 is proven, its ecosystem (EPEL, SELinux policy for K3s, CIS benchmark, MariaDB repos) is mature, and it gets security updates until May 2032. The move to 10 comes later as a fresh server set up by the playbook, once the roles are tested against it.
+- Why not AlmaLinux 10 (available since May 2025)? 9 is proven, its ecosystem (EPEL, SELinux policy for K3s, CIS benchmark, MariaDB repos) is mature, and it gets security updates until May 2032. The move to 10 comes later as a fresh server set up by the playbook. The roles are tested against AlmaLinux 10.3 (November 2026); what differs between 9 and 10 is derived from the facts in `inventory/group_vars/all/os.yml`, and on 9 the roles produce exactly what they did before.
 - Min. 4 GB RAM (8 GB recommended with Collabora)
 - Public IPv4 with DNS A-records
 - SSH root access on port 22 (switches to 10022 after first run)

@@ -1,13 +1,14 @@
 ---
 galaxy_info:
   author: raphael
-  description: Secure host Redis for Nextcloud (bind localhost + node IP for K3s pods, password, protected-mode) on AlmaLinux 9
+  description: Secure host Redis (EL9) or Valkey (EL10) for Nextcloud (bind localhost + node IP for K3s pods, password, protected-mode)
   license: MIT
   min_ansible_version: "2.10"
   platforms:
     - name: EL
       versions:
         - "9"
+        - "10"
   galaxy_tags: []
 
 dependencies: []

@@ -26,8 +26,8 @@ NoNewPrivileges=yes
 # redis.conf points to /var/run/redis_6379.pid, which user redis could never
 # write anyway (Type=notify does not need it); Redis logs that and goes on.
 ProtectSystem=strict
-ReadWritePaths=/var/lib/redis
-ReadWritePaths=-/var/log/redis
+ReadWritePaths={{ nextcloud_kv_data_dir }}
+ReadWritePaths=-{{ nextcloud_kv_log_dir }}
 PrivateTmp=yes
 ProtectHome=yes
 PrivateDevices=yes

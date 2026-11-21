@@ -83,6 +83,31 @@
     mode: "0644"
   notify: Restart MariaDB
 
+# EL10 only (AppStream mariadb-server instead of the Community package). Its
+# unit differs from the Community one in two points that clash with the
+# drop-in above (found 2026-11-21 on the first EL10 host):
+# - PrivateTmp=true: combined with TemporaryFileSystem=/tmp the private disk
+#   directory wins and the 4G tmpfs is silently ignored (CLAUDE.md).
+# - pid-file=/run/mariadb/mariadb.pid (my.cnf.d/mariadb-server.cnf) and the
+#   galera_recovery ExecStartPre write to /run/mariadb, which
+#   ProtectSystem=strict leaves read-only.
+# ExecStart=/usr/sbin/mariadbd stays valid: on EL10 it is a symlink to
+# /usr/libexec/mariadbd (mysqld_exec_t), so the domain transition is the same.
+- name: MariaDB | Deploy the EL10 addition to the systemd drop-in
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/mariadb.service.d/98-el10.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (next_mariadb) - do not edit manually.
+      # EL10 AppStream unit: see the comment in next_mariadb/tasks/main.yml.
+      [Service]
+      PrivateTmp=no
+      ReadWritePaths=/run/mariadb
+  when: os_is_el10 | bool
+  notify: Restart MariaDB
+
 # A direct daemon_reload instead of a handler: the next task starts
 # MariaDB, and it must start WITH the drop-in on a fresh host.
 # The drop-in has to be live before the service starts, otherwise the first run

@@ -120,19 +120,19 @@
     state: absent
 
 
-# The path is tied to the Python version of dnf (3.9 on EL 9); on EL 10
-# it would have to change.
+# The path is tied to the Python version of dnf (3.9 on EL 9, 3.12 on EL 10):
+# os_dnf_plugin_dir in inventory/group_vars/all/os.yml.
 # -----------------------------------------------------------------------------
 # Auto-propupd after ANY dnf transaction (manual and automatic)
 # A native dnf plugin is the most reliable hook – it runs in the same
 # process as dnf, after every transaction that actually changed packages.
 # The old dnf-automatic drop-in only fired for the nightly scheduled job,
 # not for manual "dnf upgrade" runs; the plugin covers both.
-# Plugin path: /usr/lib/python3.9/site-packages/dnf-plugins/
+# Plugin path: {{ os_dnf_plugin_dir }} (EL9: /usr/lib/python3.9/site-packages/dnf-plugins/)
 # -----------------------------------------------------------------------------
 - name: rkhunter | Deploy dnf plugin for auto-propupd
   ansible.builtin.copy:
-    dest: /usr/lib/python3.9/site-packages/dnf-plugins/rkhunter_propupd.py
+    dest: "{{ os_dnf_plugin_dir }}/rkhunter_propupd.py"
     owner: root
     group: root
     mode: "0644"

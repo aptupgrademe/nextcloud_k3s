@@ -46,9 +46,12 @@
   loop: "{{ selinux_monitoring_modules }}"
   register: sm_te
 
+# Templates since 2026-11-21 only for the /run path (os_selinux_run_dir):
+# EL9 aliases /run to /var/run, EL10 the other way round, and an entry under
+# the aliased prefix never matches.
 - name: SELinux monitoring | File contexts (.fc)
-  ansible.builtin.copy:
-    src: "homelab_{{ item }}.fc"
+  ansible.builtin.template:
+    src: "homelab_{{ item }}.fc.j2"
     dest: "/etc/selinux/local/monitoring/homelab_{{ item }}.fc"
     owner: root
     group: root
@@ -80,12 +83,16 @@
   changed_when: true
 
 # -v prints a line per file whose label changed; -F also resets the user part.
+# "[ ! -e ] || restorecon", not "[ -e ] && restorecon": with &&, a missing LAST
+# path ends the loop with status 1 and fails the task (2026-11-21, EL10: the
+# last entry is /run/grafana, which is gone while Grafana restarts; on EL9 it
+# is /var/run/grafana, which the symlink made look present).
 - name: SELinux monitoring | Apply the file contexts
   ansible.builtin.shell: |
     set -o pipefail
     awk '{print $1}' /etc/selinux/local/monitoring/homelab_{{ item }}.fc \
       | sed -e 's|(/\.\*)?$||' | while read -r p; do
-          [ -e "$p" ] && restorecon -RFv "$p"
+          [ ! -e "$p" ] || restorecon -RFv "$p"
         done
   loop: "{{ selinux_monitoring_modules }}"
   register: sm_restorecon

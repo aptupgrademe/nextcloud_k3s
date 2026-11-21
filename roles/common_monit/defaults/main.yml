@@ -52,6 +52,7 @@ monit_candidate_services:
   # pod check (monit-check-pods.sh) covers them instead.
   - mariadb
   - redis
+  - valkey      # EL10: replaces redis (inventory/group_vars/all/os.yml)
 
 # --- Mail relay for Monit's own SMTP ---
 # Reuses the same relay/credentials as msmtp (from the host vault: mail_smtphost

@@ -19,8 +19,9 @@
   check_mode: false   # read-only query, also runs in --check
   failed_when: false
 
+# redis on EL9, valkey on EL10 (nextcloud_kv_name, inventory/group_vars/all/os.yml)
 - name: Verify | redis – host service active?
-  ansible.builtin.command: systemctl is-active redis
+  ansible.builtin.command: "systemctl is-active {{ nextcloud_kv_name }}"
   register: _v_redis_svc
   changed_when: false
   check_mode: false   # read-only query, also runs in --check

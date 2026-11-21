@@ -280,6 +280,34 @@
     - { key: "Compress", value: "yes" }
     # Cap disk usage - persistent storage with no cap risks filling the disk.
     - { key: "SystemMaxUse", value: "500M" }
+  when: not (os_is_el10 | bool)
+  notify: restart journald
+
+# EL10 (systemd 257) ships no /etc/systemd/journald.conf any more, only the
+# defaults in /usr/lib/systemd/journald.conf (found 2026-11-21). The same
+# three settings go into a drop-in there; EL9 keeps the edited file above.
+- name: CIS | Ensure /etc/systemd/journald.conf.d exists (EL10)
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: os_is_el10 | bool
+
+- name: CIS | Configure journald via drop-in (EL10)
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/50-cis.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (common_cis_hardening) - do not edit manually.
+      [Journal]
+      Storage=persistent
+      Compress=yes
+      SystemMaxUse=500M
+  when: os_is_el10 | bool
   notify: restart journald
 
 # -----------------------------------------------------------------------------

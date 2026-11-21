@@ -6,13 +6,15 @@
 #          connect via the K8s ExternalService → Endpoints → node IP.
 #          nftables rules (common_firewall) restrict port 6379 to the K3s pod
 #          CIDR ({{ k3s_pod_cidr }}) and localhost.
-# Target:  AlmaLinux 9
+# Target:  AlmaLinux 9 (Redis) and AlmaLinux 10 (Valkey, the Redis fork EL10
+#          ships instead - same protocol, same port, same SELinux types).
 # Variables: bind address and port come from the inventory
-#            (nextcloud_ipv4 in host_vars/<host>/vars.yml).
+#            (nextcloud_ipv4 in host_vars/<host>/vars.yml); unit name and
+#            paths from inventory/group_vars/all/os.yml (nextcloud_kv_*).
 # =============================================================================
 #
 # How it works: Redis is installed by next_packages; this role makes sure it
-# runs, edits three lines of /etc/redis/redis.conf (bind, protected-mode,
+# runs, edits a few lines of redis.conf / valkey.conf (bind, protected-mode,
 # requirepass), restarts Redis right away if one changed, and waits until
 # it answers on the node IP - because the next roles in the same play need
 # it there.
@@ -87,16 +89,16 @@
 
 - name: Redis | Ensure systemd drop-in directory exists
   ansible.builtin.file:
-    path: /etc/systemd/system/redis.service.d
+    path: /etc/systemd/system/{{ nextcloud_kv_name }}.service.d
     state: directory
     owner: root
     group: root
     mode: "0755"
 
 - name: Redis | Deploy systemd hardening drop-in
-  ansible.builtin.copy:
-    src: systemd-hardening.conf
-    dest: /etc/systemd/system/redis.service.d/99-hardening.conf
+  ansible.builtin.template:
+    src: systemd-hardening.conf.j2
+    dest: /etc/systemd/system/{{ nextcloud_kv_name }}.service.d/99-hardening.conf
     owner: root
     group: root
     mode: "0644"
@@ -112,9 +114,9 @@
 # -----------------------------------------------------------------------------
 # Service
 # -----------------------------------------------------------------------------
-- name: Redis | Ensure Redis service is enabled and started
+- name: Redis | Ensure the service is enabled and started - {{ nextcloud_kv_name }}
   ansible.builtin.service:
-    name: redis
+    name: "{{ nextcloud_kv_name }}"
     state: started
     enabled: true
 
@@ -126,7 +128,7 @@
 # nftables restricts port 6379 to the K3s pod CIDR and localhost.
 - name: Redis | Ensure Redis binds to localhost and node IP
   ansible.builtin.lineinfile:
-    path: /etc/redis/redis.conf
+    path: "{{ nextcloud_kv_conf }}"
     regexp: '^bind\s+'
     line: 'bind 127.0.0.1 {{ nextcloud_ipv4 }}'
     backup: true
@@ -134,7 +136,7 @@
 
 - name: Redis | Ensure Redis protected-mode is enabled
   ansible.builtin.lineinfile:
-    path: /etc/redis/redis.conf
+    path: "{{ nextcloud_kv_conf }}"
     regexp: '^protected-mode\s+'
     line: 'protected-mode yes'
     backup: true
@@ -152,7 +154,7 @@
 # file locks and session data is not something to leave on one layer.
 - name: Redis | Ensure Redis requires authentication
   ansible.builtin.lineinfile:
-    path: /etc/redis/redis.conf
+    path: "{{ nextcloud_kv_conf }}"
     regexp: '^requirepass\s+'
     line: 'requirepass {{ nextcloud_redis_pass }}'
     backup: true
@@ -166,7 +168,7 @@
 # The blog's Redis pod runs with --save "" for the same reason.
 - name: Redis | Disable RDB snapshots
   ansible.builtin.lineinfile:
-    path: /etc/redis/redis.conf
+    path: "{{ nextcloud_kv_conf }}"
     regexp: '^save\s'
     line: 'save ""'
     backup: true
@@ -184,7 +186,7 @@
 # save "" no new one appears, so this stays idempotent.
 - name: Redis | Remove the last snapshot left from before save ""
   ansible.builtin.file:
-    path: /var/lib/redis/dump.rdb
+    path: "{{ nextcloud_kv_data_dir }}/dump.rdb"
     state: absent
 
 - name: Redis | Wait for Redis to be ready on host IP

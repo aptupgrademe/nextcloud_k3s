@@ -1,8 +1,10 @@
 ---
 # =============================================================================
 # Role: next_packages
-# Purpose: Install repositories and host packages for AlmaLinux 9.
-#          Sets up MariaDB (nextcloud_mariadb_repo_version), Redis, SELinux tools, and utilities.
+# Purpose: Install repositories and host packages for AlmaLinux 9 and 10.
+#          Sets up MariaDB, Redis (EL9) / Valkey (EL10), SELinux tools, and utilities.
+#          What differs between EL9 and EL10 is named in
+#          inventory/group_vars/all/os.yml (nextcloud_kv_*, nextcloud_mariadb_*).
 #          Nginx and PHP run inside K3s (next_k3s_deploy), not on the host.
 # Variables: none role-internal - the package lists are inline in this file.
 # =============================================================================
@@ -88,10 +90,14 @@
 # -----------------------------------------------------------------------------
 # STEP 4: Add the MariaDB Community repository (series: nextcloud_mariadb_repo_version)
 # -----------------------------------------------------------------------------
+# EL9 only (nextcloud_mariadb_community_repo). EL10 takes mariadb-server from
+# AppStream - the same 10.11 series - and has no DNF modules any more, so
+# there is neither a repository to add nor a module to disable.
 - name: Packages | Import MariaDB Community GPG key
   ansible.builtin.rpm_key:
     state: present
     key: https://mirror.mariadb.org/yum/RPM-GPG-KEY-MariaDB
+  when: nextcloud_mariadb_community_repo | bool
 
 - name: Packages | Add the MariaDB Community repository ({{ nextcloud_mariadb_repo_version }})
   ansible.builtin.copy:
@@ -104,6 +110,7 @@
       gpgcheck=1
       enabled=1
     mode: "0644"
+  when: nextcloud_mariadb_community_repo | bool
 
 - name: Packages | Is the AppStream mariadb module already disabled?
   ansible.builtin.command: dnf -q module list --disabled mariadb
@@ -111,10 +118,13 @@
   changed_when: false
   check_mode: false   # read-only query, also runs in --check
   failed_when: false  # rc 1 = no disabled mariadb module (yet)
+  when: nextcloud_mariadb_community_repo | bool
 
 - name: Packages | Disable the AppStream mariadb module (prevents shadowing the Community packages)
   ansible.builtin.command: dnf -y module disable mariadb
-  when: "'[x]' not in mariadb_module_disabled.stdout"
+  when:
+    - nextcloud_mariadb_community_repo | bool
+    - "'[x]' not in mariadb_module_disabled.stdout"
   changed_when: true
   failed_when: false
 
@@ -178,29 +188,34 @@
 # step; try-restart then starts the new binary (Redis keeps no data here -
 # save "" - so a restart only empties Nextcloud's cache and file locks for a
 # moment). redis.conf is ours (next_redis), the package leaves an .rpmnew.
+# EL9 only: EL10 has no modules and no Redis, it installs Valkey 8 from
+# AppStream instead (nextcloud_kv_name, os.yml).
 - name: Packages | Enabled Redis module stream
   ansible.builtin.command: dnf -q module list --enabled redis
   register: redis_module_enabled
   changed_when: false
   check_mode: false   # read-only query, also runs in --check
   failed_when: false  # rc 1 = no stream enabled yet (EL9 default 6)
+  when: not (os_is_el10 | bool)
 
 - name: Packages | Switch Redis to the module stream {{ nextcloud_redis_stream }}
   ansible.builtin.shell: |
     set -o pipefail
     dnf -y module switch-to "redis:{{ nextcloud_redis_stream }}"
     systemctl try-restart redis
-  when: redis_module_enabled.stdout is not search('(?m)^redis\\s+' ~ nextcloud_redis_stream ~ '\\s+\\S*\\s*\\[e\\]')
+  when:
+    - not (os_is_el10 | bool)
+    - redis_module_enabled.stdout is not search('(?m)^redis\\s+' ~ nextcloud_redis_stream ~ '\\s+\\S*\\s*\\[e\\]')
   changed_when: true
 
 - name: Packages | Install packages for the web stack
   ansible.builtin.dnf:
     name:
-      # --- Database ---
-      - MariaDB-server
+      # --- Database (EL9: MariaDB-server, Community repo; EL10: mariadb-server, AppStream) ---
+      - "{{ nextcloud_mariadb_package }}"
 
-      # --- Redis ---
-      - redis
+      # --- Redis (EL9) / Valkey (EL10) ---
+      - "{{ nextcloud_kv_name }}"
 
       # --- SELinux tooling ---
       - policycoreutils
@@ -241,9 +256,9 @@
     state: started
     enabled: true
 
-- name: Packages | Enable and start Redis
+- name: Packages | Enable and start {{ nextcloud_kv_name }}
   ansible.builtin.service:
-    name: redis
+    name: "{{ nextcloud_kv_name }}"
     state: started
     enabled: true
 

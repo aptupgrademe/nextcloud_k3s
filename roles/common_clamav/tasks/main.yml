@@ -33,7 +33,7 @@
   ansible.builtin.dnf:
     name:
       - clamav
-      - clamav-update
+      - "{{ clamav_freshclam_package }}"   # clamav-update (EL9) / clamav-freshclam (EL10)
     state: present
 
 

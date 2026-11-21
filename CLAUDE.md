@@ -75,7 +75,7 @@ and in the README. This file only points the way and lists the traps.
   Never apply `audit2allow -M` blindly. Restart the service once in permissive
   mode to catch start-only accesses (bind, config reads) – `audit.log` rotates
   fast while a permissive domain floods it.
-- `.fc` paths must use `/var/run/…`, not `/run/…` (`file_contexts.subs_dist`).
+- `.fc` paths must use `/var/run/…`, not `/run/…` (`file_contexts.subs_dist`) – on EL9; reversed on EL10, see below.
 - **`dontaudit` rules hide denials** – also in the permissive learning phase,
   which then allows them silently. node_exporter could not read
   `/proc/1/mountinfo` after the switch to enforcing (no AVC, just
@@ -141,6 +141,18 @@ and in the README. This file only points the way and lists the traps.
   looks green forever. Check the rule state, not the absence of mail.
 - Monit watches the services Prometheus/Grafana cannot alert about themselves
   (if Prometheus stops, every rule stays quietly green).
+
+### AlmaLinux 10 (tested 2026-11-21, production stays on 9)
+- **Every 9/10 difference goes through `inventory/group_vars/all/os.yml`** (derived from the facts), never a
+  copied role. EL9 must render byte-identical: diff a new template's EL9 output against the old file; explain in
+  `.te.j2` with a Jinja comment `{# #}` so the built module on EL9 stays the same and is not rebuilt.
+- **SELinux `/run` alias is reversed**: `file_contexts.subs_dist` has `/run /var/run` on EL9 but `/var/run /run`
+  on EL10 – `.fc` entries take `os_selinux_run_dir`. The rule above (".fc must use /var/run") is EL9 only.
+- **K3s netfilter modules** (`br_netfilter`, `nft_compat`, `xt_*`) are in `kernel-modules-extra` on EL10;
+  without them pods cannot reach the API ClusterIP (CoreDNS never ready, Helm timeouts). Check modules
+  through `systemd-run`: `ProtectKernelModules` hides `/usr/lib/modules` in SSH sessions.
+- No DNF modules, no Redis (Valkey, same `redis_t` types), no `/etc/systemd/journald.conf`, audit rules in
+  the `audit-rules` package, k3s-selinux only in Rancher's testing channel (`rpm-testing.rancher.io`).
 
 ### CI
 - **No apostrophe in a comment inside a `shell:` block** – ansible-lint fails

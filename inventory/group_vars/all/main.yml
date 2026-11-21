@@ -7,14 +7,16 @@
 # Vendor repositories without security metadata: dnf-automatic (security
 # updates only) never updates them, update-vendor-repos takes every update
 # from them at 02:15 (common_dnf_automatic). grafana: common_grafana,
-# rancher-k3s-common-stable: k3s-selinux (common_k3s), mariadb: MariaDB
-# Community repo (next_packages; the repo pins the series, e.g. 10.11, so
-# only patch releases come in). The updated mariadbd is restarted at 03:45 by
+# k3s_selinux_repo_id: k3s-selinux (common_k3s; rancher-k3s-common-stable on
+# EL9, the testing channel on EL10 - see os.yml), mariadb: MariaDB Community
+# repo (next_packages, EL9 only; the repo pins the series, e.g. 10.11, so only
+# patch releases come in). The updated mariadbd is restarted at 03:45 by
 # restart-updated-services, the systemd drop-in (SELinux domain) stays.
-dnf_automatic_vendor_repos:
-  - grafana
-  - rancher-k3s-common-stable
-  - mariadb
+# dnf aborts on an --enablerepo id that does not exist, so the list must name
+# only repositories the host really has.
+dnf_automatic_vendor_repos: >-
+  {{ ['grafana', k3s_selinux_repo_id]
+     + (['mariadb'] if nextcloud_mariadb_community_repo | bool else []) }}
 
 # =============================================================================
 # K3s / Kubernetes cluster settings

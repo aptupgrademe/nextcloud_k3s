@@ -24,10 +24,21 @@
 # -----------------------------------------------------------------------------
 # Package (usually pre-installed on AlmaLinux 9 – ensure it's present)
 # -----------------------------------------------------------------------------
+# EL10 (audit 4) moved /etc/audit/rules.d, augenrules, auditctl and the
+# audit-rules.service that loads the rules at boot into the separate package
+# audit-rules (found 2026-11-21: without it the rules task below failed with
+# "Destination directory /etc/audit/rules.d does not exist"). EL9 has no such
+# package - everything is in audit there.
 - name: auditd | Ensure audit package is installed
   ansible.builtin.dnf:
-    name: audit
+    name: "{{ ['audit'] + (['audit-rules'] if os_is_el10 | bool else []) }}"
     state: present
+
+- name: auditd | Load the rules at boot (audit-rules.service, EL10)
+  ansible.builtin.systemd:
+    name: audit-rules.service
+    enabled: true
+  when: os_is_el10 | bool
 
 
 # -----------------------------------------------------------------------------

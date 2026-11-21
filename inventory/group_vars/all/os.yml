@@ -1,0 +1,66 @@
+---
+# =============================================================================
+# What differs between AlmaLinux 9 and AlmaLinux 10 (added 2026-11-21).
+#
+# The roles take these names instead of hard-coding them, so the same code runs
+# on both. Every value is derived from the gathered facts, so a host on EL9
+# gets exactly what it had before, and a host on EL10 gets the EL10 names. No
+# host needs a per-host setting for it.
+#
+# Only nextcloud-k3s.yml gathers facts; the variables below are not used by
+# nextcloud-update.yml (gather_facts: false).
+# =============================================================================
+
+# Major version of the distribution (9, 10).
+os_el_major: "{{ ansible_facts['distribution_major_version'] | int }}"
+os_is_el10: "{{ os_el_major | int >= 10 }}"
+
+# --- Key-value store on the host (Nextcloud cache and file locks) ---
+# EL10 ships no Redis any more, only its fork Valkey (AppStream, 8.x). It is
+# the same protocol on the same port 6379, so the pods and the php-redis
+# client do not notice. The SELinux policy labels Valkey with the Redis types
+# (redis_t, redis_conf_t, redis_var_lib_t ...), so homelab_redis_nnp
+# (next_redis) works unchanged.
+nextcloud_kv_name: "{{ 'valkey' if os_is_el10 | bool else 'redis' }}"
+nextcloud_kv_conf: "/etc/{{ nextcloud_kv_name }}/{{ nextcloud_kv_name }}.conf"
+nextcloud_kv_data_dir: "/var/lib/{{ nextcloud_kv_name }}"
+nextcloud_kv_log_dir: "/var/log/{{ nextcloud_kv_name }}"
+nextcloud_kv_server_comm: "{{ nextcloud_kv_name }}-server"
+
+# --- MariaDB ---
+# EL9: MariaDB Community repository, series nextcloud_mariadb_repo_version
+# (versions.yml), AppStream module disabled. EL10: AppStream itself carries
+# the same series (10.11) and has no modules any more, so the distribution
+# package is taken - one vendor repository less, and its security fixes come
+# with updateinfo through the normal dnf-automatic run.
+nextcloud_mariadb_community_repo: "{{ not (os_is_el10 | bool) }}"
+nextcloud_mariadb_package: "{{ 'MariaDB-server' if nextcloud_mariadb_community_repo | bool else 'mariadb-server' }}"
+
+# --- k3s-selinux (common_k3s) ---
+# Rancher publishes EL10 builds only in its testing channel so far (own
+# repository host and signing key, checked 2026-11-21: k3s-selinux 1.7-5.el10).
+# Switch EL10 to the stable channel once rpm.rancher.io carries centos/10.
+k3s_selinux_repo_id: "{{ 'rancher-k3s-common-testing' if os_is_el10 | bool else 'rancher-k3s-common-stable' }}"
+k3s_selinux_repo_description: "{{ 'Rancher K3s Common (testing)' if os_is_el10 | bool else 'Rancher K3s Common (stable)' }}"
+k3s_selinux_repo_baseurl: >-
+  {{ 'https://rpm-testing.rancher.io/k3s/testing/common/centos/'
+     if os_is_el10 | bool else 'https://rpm.rancher.io/k3s/stable/common/centos/' }}{{ os_el_major }}/noarch
+k3s_selinux_repo_gpgkey: "{{ 'https://rpm-testing.rancher.io/public.key' if os_is_el10 | bool else 'https://rpm.rancher.io/public.key' }}"
+
+# --- dnf plugins (common_rkhunter) ---
+# Native dnf plugins live in the site-packages of the Python dnf runs on:
+# 3.9 on EL9, 3.12 on EL10 (dnf stays dnf 4 on EL10).
+os_dnf_plugin_dir: "/usr/lib/python{{ '3.12' if os_is_el10 | bool else '3.9' }}/site-packages/dnf-plugins"
+
+# --- ClamAV signature updater (common_clamav) ---
+# EPEL 9 calls the freshclam package clamav-update, EPEL 10 clamav-freshclam.
+# The service (clamav-freshclam) and /etc/freshclam.conf are the same.
+clamav_freshclam_package: "{{ 'clamav-freshclam' if os_is_el10 | bool else 'clamav-update' }}"
+
+# --- SELinux file contexts of own modules (.fc) ---
+# file_contexts.subs_dist aliases the two run paths: EL9 has "/run /var/run"
+# (so .fc entries must say /var/run/...), EL10 has "/var/run /run" (so they
+# must say /run/...). An entry under the aliased prefix is never matched -
+# found 2026-11-21: /run/grafana stayed var_run_t on EL10 and Grafana in
+# homelab_grafana_t could not write its pid file.
+os_selinux_run_dir: "{{ '/run' if os_is_el10 | bool else '/var/run' }}"

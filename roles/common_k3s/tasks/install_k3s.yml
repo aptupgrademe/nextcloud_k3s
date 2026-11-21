@@ -34,6 +34,38 @@
       - python3-kubernetes
     state: present
 
+# EL10 moved the netfilter modules kube-proxy and flannel load (br_netfilter,
+# nft_compat, xt_comment, xt_conntrack, xt_mark, xt_MASQUERADE ...) out of
+# kernel-modules into kernel-modules-extra (found 2026-11-21 on the first EL10
+# host). Without them K3s starts, but its iptables-nft rules fail ("Extension
+# comment revision 0 not supported, missing kernel module?"): no pod reaches
+# the API server ClusterIP, CoreDNS never gets ready, and the first Helm
+# install (cert-manager) runs into its timeout.
+# Installed for the RUNNING kernel; later kernels get their own
+# kernel-modules-extra from the same update (installonly package, dnf
+# upgrades it together with the kernel). Through systemd-run: the SSH
+# session's ProtectKernelModules=yes (common_ssh) masks /usr/lib/modules, so
+# a kernel module package cannot be installed from inside it.
+# rpm -q instead of package_facts (would read every package) or a stat of the
+# module file (masked by the SSH sandbox, see above).
+- name: K3s | Is kernel-modules-extra installed for the running kernel? (EL10)
+  ansible.builtin.command: rpm -q "kernel-modules-extra-{{ ansible_facts['kernel'] }}"  # noqa: command-instead-of-module
+  register: k3s_kmod_extra
+  changed_when: false
+  check_mode: false   # read-only query, also runs in --check
+  failed_when: false
+  when: os_is_el10 | bool
+
+- name: K3s | Install kernel-modules-extra for the running kernel (EL10)
+  ansible.builtin.command: >-
+    systemd-run --wait --pipe --quiet --collect --
+    dnf -y install "kernel-modules-extra-{{ ansible_facts['kernel'] }}"
+  when:
+    - os_is_el10 | bool
+    - k3s_kmod_extra.rc != 0
+  changed_when: true
+  notify: Restart k3s service
+
 # k3s-selinux: the SELinux policy for K3s itself. Without it the k3s binary
 # is plain bin_t, containerd is started without SELinux support, and every
 # pod ran as unconfined_service_t (Nextcloud hosts) or spc_t (blog) - not
@@ -43,15 +75,18 @@
 # The repository is Rancher's (signed packages, gpgcheck), the same one the
 # K3s install script adds; written here so all hosts get it, not only the
 # one where the script happened to add it.
+# EL10: Rancher builds k3s-selinux for centos/10 only in its testing channel
+# so far (own host rpm-testing.rancher.io, own signing key) - repository id,
+# URL and key come from inventory/group_vars/all/os.yml (k3s_selinux_repo_*).
 - name: K3s | Rancher repository for the k3s-selinux policy
   ansible.builtin.yum_repository:
-    name: rancher-k3s-common-stable
+    name: "{{ k3s_selinux_repo_id }}"
     file: rancher-k3s-common   # the file name the K3s install script uses
-    description: Rancher K3s Common (stable)
-    baseurl: "https://rpm.rancher.io/k3s/stable/common/centos/{{ ansible_facts['distribution_major_version'] }}/noarch"
+    description: "{{ k3s_selinux_repo_description }}"
+    baseurl: "{{ k3s_selinux_repo_baseurl }}"
     gpgcheck: true
     repo_gpgcheck: false
-    gpgkey: https://rpm.rancher.io/public.key
+    gpgkey: "{{ k3s_selinux_repo_gpgkey }}"
     enabled: true
 
 - name: K3s | Install the k3s-selinux policy
