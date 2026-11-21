@@ -64,3 +64,12 @@ clamav_freshclam_package: "{{ 'clamav-freshclam' if os_is_el10 | bool else 'clam
 # found 2026-11-21: /run/grafana stayed var_run_t on EL10 and Grafana in
 # homelab_grafana_t could not write its pid file.
 os_selinux_run_dir: "{{ '/run' if os_is_el10 | bool else '/var/run' }}"
+
+# --- AIDE time limit (common_cis_hardening, common_aide_refresh) ---
+# AIDE 0.19.2 on EL10 hung once with --workers=4 (2026-11-21): one worker spun
+# in pcre2_match for 2.5 hours, no syscalls, the others waited on a futex;
+# eight repeats right after took 23-31 s each. A rare race, not a path or
+# rule - so every AIDE run on EL10 gets a hard limit (normal: under a minute).
+# EL9 never showed it and keeps its command lines byte-identical.
+aide_timeout_prefix: "{{ 'timeout 1800 ' if os_is_el10 | bool else '' }}"
+aide_runtime_max_opt: "{{ '-p RuntimeMaxSec=1800 ' if os_is_el10 | bool else '' }}"

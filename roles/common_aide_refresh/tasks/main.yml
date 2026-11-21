@@ -73,7 +73,7 @@
 # "changed files recorded" (see above) - not a permission problem.
 - name: AIDE refresh | Compare with the baseline and write the new database (one scan)
   ansible.builtin.command: >-
-    systemd-run --wait --pipe --quiet --collect -p Nice=10 --
+    systemd-run --wait --pipe --quiet --collect -p Nice=10 {{ aide_runtime_max_opt }}--
     aide --update --workers={{ aide_nproc.stdout | default('1') }}
   register: aide_update
   changed_when: false   # the change is the activation below

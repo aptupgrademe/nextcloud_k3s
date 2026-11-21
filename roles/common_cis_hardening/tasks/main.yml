@@ -145,7 +145,7 @@
 # couple of minutes on first run. systemd-run escapes the SSH session's
 # private mount namespace (same reasoning as common_sysctl's sysctl tasks).
 - name: CIS | Build the initial AIDE database (first run only)
-  ansible.builtin.command: systemd-run --wait --pipe --quiet -- aide --init
+  ansible.builtin.command: systemd-run --wait --pipe --quiet {{ aide_runtime_max_opt }}-- aide --init
   when: not aide_db.stat.exists
   changed_when: true
 
@@ -172,7 +172,7 @@
     name: "AIDE integrity check"
     special_time: daily
     job: >-
-      OUT=$(nice -n 10 /usr/sbin/aide --check --workers=$(nproc) 2>&1);
+      OUT=$({{ aide_timeout_prefix }}nice -n 10 /usr/sbin/aide --check --workers=$(nproc) 2>&1);
       [ $? -ne 0 ] && echo "$OUT" | /usr/bin/mail -s "[$(hostname -f)] AIDE found file integrity changes" {{ aide_mail }};
       /usr/local/sbin/heartbeat-mark aide_check 108000
     user: root
@@ -202,7 +202,7 @@
     hour: "4"
     minute: "0"
     job: >-
-      nice -n 10 /usr/sbin/aide --update --workers=$(nproc) >/dev/null 2>&1;
+      {{ aide_timeout_prefix }}nice -n 10 /usr/sbin/aide --update --workers=$(nproc) >/dev/null 2>&1;
       [ -f /var/lib/aide/aide.db.new.gz ] && mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
       && /usr/local/sbin/heartbeat-mark aide_update 108000
     user: root
