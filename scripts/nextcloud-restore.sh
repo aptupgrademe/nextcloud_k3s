@@ -76,7 +76,10 @@ SSH_CMD="ssh -i $SSH_KEY -p $REMOTE_SSH_PORT -o LogLevel=ERROR $REMOTE_USER@$REM
 RSYNC_E="ssh -i $SSH_KEY -p $REMOTE_SSH_PORT -o LogLevel=ERROR"
 OCC="k3s kubectl exec deployment/$DEPLOYMENT -n $NAMESPACE -c nextcloud-fpm -- runuser -u www-data -- php /var/www/html/occ"
 
-$SSH_CMD "command -v k3s >/dev/null" || {
+# </dev/null: ssh would otherwise swallow stdin, and the confirmation below
+# would read EOF and end the script without a word (found 2026-11-21 with
+# "echo test | ./nextcloud-restore.sh test").
+$SSH_CMD "command -v k3s >/dev/null" </dev/null || {
   echo "Error: $REMOTE_HOST has no K3s - native install, restore by hand (see README)."
   exit 1
 }
@@ -87,7 +90,7 @@ echo "=== Nextcloud Restore: $ENV ($REMOTE_HOST) ==="
 echo "    Source: $BACKUP_DIR"
 echo "    Dump:   $(basename "$DUMP")   Data as of: $(cat "$BACKUP_DIR/last-success" 2>/dev/null || echo unknown)"
 echo "    This OVERWRITES code, data and database on $REMOTE_HOST."
-read -r -p "    Type the environment name ($ENV) to continue: " answer
+read -r -p "    Type the environment name ($ENV) to continue: " answer || { echo "Aborted (no confirmation on stdin)."; exit 1; }
 [[ "$answer" == "$ENV" ]] || { echo "Aborted."; exit 1; }
 
 echo "[1/8] Enabling maintenance mode ..."
@@ -110,7 +113,8 @@ rsync -a --delete \
   "$BACKUP_DIR/data/" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_DATA_DIR/"
 
 echo "[5/8] Restoring database dump $(basename "$DUMP") ..."
-zcat "$DUMP" | $SSH_CMD "mysql $DB_NAME"
+# mariadb, falls back to mysql: the mysql name is deprecated in MariaDB 11.8.
+zcat "$DUMP" | $SSH_CMD "\$(command -v mariadb || command -v mysql) $DB_NAME"
 
 echo "[6/8] Fixing ownership (www-data = uid 33) ..."
 $SSH_CMD "chown -R 33:33 $REMOTE_WWW_DIR $REMOTE_DATA_DIR"

@@ -240,6 +240,25 @@
       blacklist jffs2
       blacklist usb-storage
 
+# Unused network protocols (CIS AlmaLinux 10 L1, kernel_module_*_disabled;
+# the same list as CIS AlmaLinux 9). Found by an OpenSCAP scan on the EL10 test
+# host, 2026-11-21. Nothing here uses ATM, CAN bus, DCCP, RDS, SCTP, TIPC or
+# FireWire - K3s and its Services are TCP/UDP only. Takes effect on the next
+# load; none of them is loaded on a running host anyway.
+- name: CIS | Block unused network protocol kernel modules
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/cis-net-protocols.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (common_cis_hardening) - network protocols with no
+      # use on this host (CIS: ATM, CAN, DCCP, RDS, SCTP, TIPC, FireWire).
+      {% for m in ['atm', 'can', 'dccp', 'rds', 'sctp', 'tipc', 'firewire-core'] %}
+      install {{ m }} /bin/false
+      blacklist {{ m }}
+      {% endfor %}
+
 # nftables only (2026-10-19): the legacy iptables tables must never come back.
 # With them loaded, an iptables-legacy binary (or a container image that brings
 # one) can write rules the nftables view does not show, which is how the blog
@@ -572,3 +591,114 @@
     - /dev/shm
   register: cis_host_mounts
   changed_when: "'applied' in cis_host_mounts.stdout"
+
+# -----------------------------------------------------------------------------
+# Gaps found by an OpenSCAP scan with the "CIS AlmaLinux OS 10 Level 1 -
+# Server" profile on the EL10 test host (2026-11-21: 236 pass, 62 fail). The
+# rules below were real gaps on both EL9 and EL10. Deliberately NOT done:
+# IP forwarding/rp_filter/log_martians (K3s needs them, see common_sysctl),
+# firewalld (nftables), key-only root login (Ansible), the password and PAM
+# rules (no password logins exist), a GRUB password (it would lock the
+# provider console), rsyslog off (/var/log/messages is still used by hand).
+# -----------------------------------------------------------------------------
+
+# file_permissions_boot_grub2: grubenv came as 0644; grub.cfg is already 0600.
+- name: CIS | Check the GRUB environment block
+  ansible.builtin.stat:
+    path: /boot/grub2/grubenv
+  register: cis_grubenv
+
+- name: CIS | GRUB environment block readable by root only
+  ansible.builtin.file:
+    path: /boot/grub2/grubenv
+    mode: "0600"
+  when: cis_grubenv.stat.exists
+
+# accounts_umask_etc_login_defs / _etc_bashrc / _etc_profile: 027 instead of
+# 022. Applies to new shells; Ansible sets explicit modes on what it writes.
+- name: CIS | Default umask 027 in login.defs
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: '^UMASK\s'
+    line: "UMASK\t\t027"
+
+- name: CIS | Default umask 027 in /etc/bashrc
+  ansible.builtin.replace:
+    path: /etc/bashrc
+    regexp: '(\bumask\s+)0?0?22\b'
+    replace: '\g<1>027'
+
+- name: CIS | Default umask 027 and idle timeout for login shells
+  ansible.builtin.copy:
+    dest: /etc/profile.d/cis-shell.sh
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (common_cis_hardening) - CIS accounts_umask_etc_profile
+      # and accounts_tmout: umask 027, idle interactive shells end after 15 min.
+      umask 027
+      typeset -xr TMOUT=900
+
+# aide_check_audit_tools: AIDE also watches the audit tools themselves.
+- name: CIS | AIDE checks the audit tools
+  ansible.builtin.blockinfile:
+    path: /etc/aide.conf
+    marker: "# {mark} ANSIBLE MANAGED: audit tools (CIS aide_check_audit_tools)"
+    block: |
+      {% for t in ['auditctl', 'auditd', 'ausearch', 'aureport', 'autrace', 'augenrules'] %}
+      /usr/sbin/{{ t }} p+i+n+u+g+s+b+acl+xattrs+sha512
+      {% endfor %}
+
+# configure_custom_crypto_policy_cis: DEFAULT minus CBC ciphers and weak MACs
+# for SSH (this also drops the hmac-sha1 MACs the server offered) and minus
+# 128-bit MACs. Modern clients use AEAD ciphers and sha2 MACs; tested with the
+# Ansible controller and the backup pull. sshd reads the policy at start.
+- name: CIS | Crypto policy modules
+  ansible.builtin.copy:
+    dest: "/etc/crypto-policies/policies/modules/{{ item.name }}.pmod"
+    owner: root
+    group: root
+    mode: "0644"
+    content: "{{ item.rule }}\n"
+  loop:
+    - {name: NO-SSHCBC, rule: "cipher@SSH = -*-CBC"}
+    - {name: NO-SSHWEAKCIPHERS, rule: "cipher@SSH = -3DES-CBC -AES-128-CBC -AES-192-CBC -AES-256-CBC"}
+    - {name: NO-SSHWEAKMACS, rule: "mac@SSH = -HMAC-MD5* -UMAC-64* -UMAC-128* -HMAC-SHA1*"}
+    - {name: NO-WEAKMAC, rule: "mac = -*-128*"}
+
+- name: CIS | Current crypto policy
+  ansible.builtin.command: update-crypto-policies --show
+  register: cis_crypto_policy
+  changed_when: false
+  check_mode: false   # read-only query, also runs in --check
+
+- name: CIS | Activate the CIS crypto policy
+  ansible.builtin.command: update-crypto-policies --set DEFAULT:NO-SSHCBC:NO-SSHWEAKCIPHERS:NO-SSHWEAKMACS:NO-WEAKMAC
+  when: cis_crypto_policy.stdout | trim != 'DEFAULT:NO-SSHCBC:NO-SSHWEAKCIPHERS:NO-SSHWEAKMACS:NO-WEAKMAC'
+  changed_when: true
+  notify: reload sshd
+
+# no_empty_passwords: pam_unix without "nullok" (authselect feature). Only
+# where authselect manages PAM; no account has an empty password anyway.
+- name: CIS | Current authselect profile
+  ansible.builtin.command: authselect current
+  register: cis_authselect
+  changed_when: false
+  failed_when: false
+  check_mode: false   # read-only query, also runs in --check
+
+- name: CIS | No logins with an empty password (authselect without-nullok)
+  ansible.builtin.command: authselect enable-feature without-nullok
+  when:
+    - cis_authselect.rc == 0
+    - "'without-nullok' not in cis_authselect.stdout"
+  changed_when: true
+
+# package_sequoia-sq_installed: EL10 verifies RPM signatures with Sequoia; the
+# sq tool is what the benchmark asks for. EL9 has no such package.
+- name: CIS | Sequoia command-line tool (EL10)
+  ansible.builtin.dnf:
+    name: sequoia-sq
+    state: present
+  when: os_is_el10 | bool

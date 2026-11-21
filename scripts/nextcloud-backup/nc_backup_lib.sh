@@ -16,7 +16,7 @@
 # sich in diesem kleinen Fenster ändert, gleicht nach einem Restore
 # `occ files:scan --all` ab (macht scripts/nextcloud-restore.sh).
 #
-# Kein Passwort hier: mysqldump läuft als root über /root/.my.cnf der Instanz.
+# Kein Passwort hier: mariadb-dump (bzw. mysqldump) läuft als root über /root/.my.cnf der Instanz.
 # Erfolg schreibt einen Zeitstempel nach /var/lib/nextcloud-backup/last-success
 # auf der Instanz (Monit warnt, wenn er zu alt wird) und nach <NAME>/last-success.
 # =============================================================================
@@ -84,8 +84,10 @@ sync_dir "$REMOTE_DATA" "$BASE/data"
 DUMP="$BASE/db/${DB_NAME}_$TS.sql.gz"
 log "--- DB-Dump $DB_NAME ---"
 DUMP_START=$SECONDS
-$SSH "$TARGET" "mysqldump --single-transaction --quick --routines --events $DB_NAME | gzip" > "$DUMP.part" \
-    || fail "mysqldump fehlgeschlagen"
+# mariadb-dump, falls back to mysqldump: MariaDB 11.8 (EL10) warns that the
+# mysqldump name "will be removed in a future release" (2026-11-21).
+$SSH "$TARGET" "\$(command -v mariadb-dump || command -v mysqldump) --single-transaction --quick --routines --events $DB_NAME | gzip" > "$DUMP.part" \
+    || fail "DB-Dump (mariadb-dump) fehlgeschlagen"
 gzip -t "$DUMP.part" || fail "Dump ist kein gültiges gzip"
 zcat "$DUMP.part" | tail -n 1 | grep -q "Dump completed" || fail "Dump unvollständig"
 mv "$DUMP.part" "$DUMP"

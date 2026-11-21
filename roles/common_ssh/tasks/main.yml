@@ -134,6 +134,7 @@
       PasswordAuthentication no
       KbdInteractiveAuthentication no
       PermitRootLogin prohibit-password
+      PermitEmptyPasswords no
       X11Forwarding no
   notify:
     - Validate sshd config

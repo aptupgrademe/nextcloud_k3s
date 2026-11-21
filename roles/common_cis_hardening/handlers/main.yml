@@ -5,3 +5,9 @@
   ansible.builtin.systemd:
     name: systemd-journald
     state: restarted
+
+# sshd reads the system crypto policy only at start (CIS crypto policy task).
+- name: reload sshd
+  ansible.builtin.systemd:
+    name: sshd
+    state: reloaded

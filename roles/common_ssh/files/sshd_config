@@ -101,7 +101,9 @@ PrintMotd no
 # Detect and drop dead/idle sessions instead of letting them hang indefinitely
 # (no ClientAliveInterval was set before, so stale sessions never timed out).
 ClientAliveInterval 300
-ClientAliveCountMax 2
+# CIS AlmaLinux 10 L1 sshd_set_keepalive: 1 (was 2 until 2026-11-21). Clients
+# answer the keepalive themselves, so idle sessions are not cut by it.
+ClientAliveCountMax 1
 #UseDNS no
 #PidFile /var/run/sshd.pid
 # Lower ceiling on concurrent unauthenticated connections (reduces exposure

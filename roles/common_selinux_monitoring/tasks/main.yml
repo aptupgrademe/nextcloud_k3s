@@ -82,7 +82,13 @@
     or ('homelab_' ~ item) not in sm_loaded.stdout_lines
   changed_when: true
 
-# -v prints a line per file whose label changed; -F also resets the user part.
+# -v prints a line per file whose label changed. No -F (until 2026-11-21 it
+# had one): -F also resets the SELinux USER part, which the targeted policy
+# ignores for access. Every Ansible SSH login runs the login alert, whose
+# heartbeat-mark writes its .prom file from the SSH session as unconfined_u;
+# -F "fixed" that to system_u on every run and restarted node_exporter for
+# nothing (found on the EL10 test host, the same on EL9). A wrong TYPE is
+# still corrected - that is what matters.
 # "[ ! -e ] || restorecon", not "[ -e ] && restorecon": with &&, a missing LAST
 # path ends the loop with status 1 and fails the task (2026-11-21, EL10: the
 # last entry is /run/grafana, which is gone while Grafana restarts; on EL9 it
@@ -92,7 +98,7 @@
     set -o pipefail
     awk '{print $1}' /etc/selinux/local/monitoring/homelab_{{ item }}.fc \
       | sed -e 's|(/\.\*)?$||' | while read -r p; do
-          [ ! -e "$p" ] || restorecon -RFv "$p"
+          [ ! -e "$p" ] || restorecon -Rv "$p"
         done
   loop: "{{ selinux_monitoring_modules }}"
   register: sm_restorecon
