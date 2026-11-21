@@ -88,6 +88,12 @@ and in the README. This file only points the way and lists the traps.
 - **SSH sessions are sandboxed** (no writes to kernel tunables, no namespaces):
   `sysctl -w`, `nsenter`, `tcpdump` fail there. Use
   `systemd-run --wait --pipe --collect …`.
+- **SSH sessions live in sshd's own mount namespace.** A mount made there
+  (`ansible.posix.mount state: mounted`) never reaches the host, and a later
+  host mount stacks on top of it – the module then misreads the source and
+  remounts on every run, doubling the stack (found 2026-11-21: 129 layers of
+  `/var/tmp`, host `/tmp` not hardened at all). Mount via `systemd-run`, write
+  fstab with `state: present`; read mounts from `/proc/1/mountinfo`.
 - **`/tmp` is on disk and `noexec`** on the hosts; it is not emptied by a
   reboot. Clean up downloads/extractions yourself; run scripts from stdin.
 - **`PrivateTmp=yes` and `TemporaryFileSystem=/tmp` must not be combined** –

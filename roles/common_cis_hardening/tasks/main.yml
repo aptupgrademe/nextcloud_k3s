@@ -521,13 +521,24 @@
 # is common_k3s's installer bootstrap, and that's already invoked via `sh
 # /tmp/k3s-install.sh` (see common_k3s/tasks/install_k3s.yml) rather than
 # executed directly, so it is unaffected by noexec.
+# fstab only (state: present), the mount itself happens in the next task.
+# Found 2026-11-21 on a fresh test host: "state: mounted" mounts inside the
+# SSH session, and that is sshd's own mount namespace (common_ssh sandbox),
+# not the host's. When systemd later mounted /var/tmp on the host (a unit
+# with PrivateTmp pulls in var-tmp.mount), that mount propagated into
+# sshd's namespace ON TOP of the module's own one. From then on the module
+# read the source as "/var/tmp/var/tmp", thought nothing was mounted and
+# mounted again on every run - shared propagation doubled the stack each
+# time (129 layers after ten runs, changed=1 in every drift check). Hosts
+# that rebooted with the fstab entry in place (cvjm, sofie) only ever had
+# one layer, which is why it never showed there.
 - name: CIS | Add hardened mount options for /tmp
   ansible.posix.mount:
     path: /tmp
     src: /tmp
     fstype: none
     opts: bind,nodev,nosuid,noexec
-    state: mounted
+    state: present
 
 - name: CIS | Add hardened mount options for /var/tmp
   ansible.posix.mount:
@@ -535,7 +546,7 @@
     src: /var/tmp
     fstype: none
     opts: bind,nodev,nosuid,noexec
-    state: mounted
+    state: present
 
 - name: CIS | Add hardened mount options for /dev/shm
   ansible.posix.mount:
@@ -543,4 +554,21 @@
     src: tmpfs
     fstype: tmpfs
     opts: nodev,nosuid,noexec
-    state: mounted
+    state: present
+
+# Mount in the HOST namespace (systemd-run escapes the SSH sandbox), only
+# where the hardened options are missing there: mount from fstab, or remount
+# with the fstab options if something is already mounted at that path. The
+# mount then reaches sshd's namespace through propagation, as one layer.
+- name: CIS | Apply the hardened mounts on the host
+  ansible.builtin.command: >-
+    systemd-run --wait --pipe --quiet --collect --
+    sh -c 'o=$(findmnt -no OPTIONS --mountpoint {{ item }} || true);
+    case "$o" in *nodev*nosuid*noexec*|*nosuid*nodev*noexec*) exit 0 ;; esac;
+    if mountpoint -q {{ item }}; then mount -o remount {{ item }}; else mount {{ item }}; fi && echo applied'
+  loop:
+    - /tmp
+    - /var/tmp
+    - /dev/shm
+  register: cis_host_mounts
+  changed_when: "'applied' in cis_host_mounts.stdout"
