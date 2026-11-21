@@ -29,12 +29,18 @@ nextcloud_kv_server_comm: "{{ nextcloud_kv_name }}-server"
 
 # --- MariaDB ---
 # EL9: MariaDB Community repository, series nextcloud_mariadb_repo_version
-# (versions.yml), AppStream module disabled. EL10: AppStream itself carries
-# the same series (10.11) and has no modules any more, so the distribution
-# package is taken - one vendor repository less, and its security fixes come
-# with updateinfo through the normal dnf-automatic run.
+# (versions.yml), AppStream module disabled. EL10: no modules any more; the
+# distribution package is taken - one vendor repository less, and its
+# security fixes come with updateinfo through the normal dnf-automatic run.
+# EL10 AppStream has two MariaDB servers: mariadb-server (10.11, the default)
+# and mariadb11.8-server (11.8). Nextcloud 35 supports 10.11 only as its
+# minimum and recommends 11.8 (system requirements, read 2026-11-21), so EL10
+# takes 11.8. Same layout as the default package (mariadb.service,
+# /usr/libexec/mariadbd, mysqld_t), the hardening drop-ins apply unchanged.
+# A host that already has mariadb-server 10.11 needs a one-time swap
+# (dnf install mariadb11.8-server --allowerasing, then mariadb-upgrade).
 nextcloud_mariadb_community_repo: "{{ not (os_is_el10 | bool) }}"
-nextcloud_mariadb_package: "{{ 'MariaDB-server' if nextcloud_mariadb_community_repo | bool else 'mariadb-server' }}"
+nextcloud_mariadb_package: "{{ 'MariaDB-server' if nextcloud_mariadb_community_repo | bool else 'mariadb11.8-server' }}"
 
 # --- k3s-selinux (common_k3s) ---
 # Rancher publishes EL10 builds only in its testing channel so far (own

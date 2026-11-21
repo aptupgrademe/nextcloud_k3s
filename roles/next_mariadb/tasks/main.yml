@@ -51,10 +51,13 @@
 # -----------------------------------------------------------------------------
 # Service
 # -----------------------------------------------------------------------------
+# The package name comes from os.yml: MariaDB-server (Community repo, EL9)
+# or mariadb11.8-server (AppStream, EL10). A plain "mariadb-server" here
+# would pull the EL10 default 10.11 next to it (they conflict).
 - name: MariaDB | Ensure MariaDB and Python MySQL driver are installed
   ansible.builtin.dnf:
     name:
-      - mariadb-server
+      - "{{ nextcloud_mariadb_package }}"
       - python3-PyMySQL
     state: present
 
@@ -83,29 +86,45 @@
     mode: "0644"
   notify: Restart MariaDB
 
-# EL10 only (AppStream mariadb-server instead of the Community package). Its
-# unit differs from the Community one in two points that clash with the
-# drop-in above (found 2026-11-21 on the first EL10 host):
+# EL10 only (AppStream mariadb11.8-server instead of the Community package).
+# Its unit and server differ in three points that clash with the drop-in
+# above (found 2026-11-21 on the first EL10 host):
 # - PrivateTmp=true: combined with TemporaryFileSystem=/tmp the private disk
 #   directory wins and the 4G tmpfs is silently ignored (CLAUDE.md).
 # - pid-file=/run/mariadb/mariadb.pid (my.cnf.d/mariadb-server.cnf) and the
 #   galera_recovery ExecStartPre write to /run/mariadb, which
 #   ProtectSystem=strict leaves read-only.
+# - MariaDB 11.8 calls chown() (at start and during mariadb-upgrade); 10.11
+#   did not. chown is in @privileged, which the drop-in above forbids, so
+#   mariadbd died with SIGSYS (status=31/SYS, audit SECCOMP syscall=92).
+#   Allowing @chown is harmless here: mariadbd runs as mysql with an empty
+#   capability set, so without CAP_CHOWN it can only chown its own files.
+# The file is named 99-zz-* on purpose: for SystemCallFilter the later line
+# wins, so @chown must come after the ~@privileged in 99-hardening.conf.
 # ExecStart=/usr/sbin/mariadbd stays valid: on EL10 it is a symlink to
 # /usr/libexec/mariadbd (mysqld_exec_t), so the domain transition is the same.
 - name: MariaDB | Deploy the EL10 addition to the systemd drop-in
   ansible.builtin.copy:
-    dest: /etc/systemd/system/mariadb.service.d/98-el10.conf
+    dest: /etc/systemd/system/mariadb.service.d/99-zz-el10.conf
     owner: root
     group: root
     mode: "0644"
     content: |
       # Managed by Ansible (next_mariadb) - do not edit manually.
-      # EL10 AppStream unit: see the comment in next_mariadb/tasks/main.yml.
+      # EL10 AppStream unit and MariaDB 11.8: see the comment in next_mariadb/tasks/main.yml.
       [Service]
       PrivateTmp=no
       ReadWritePaths=/run/mariadb
+      SystemCallFilter=@chown
   when: os_is_el10 | bool
+  notify: Restart MariaDB
+
+# Its first version was called 98-el10.conf (sorted before 99-hardening.conf,
+# too early for SystemCallFilter). Absent on EL9 anyway.
+- name: MariaDB | Remove the former EL10 drop-in name
+  ansible.builtin.file:
+    path: /etc/systemd/system/mariadb.service.d/98-el10.conf
+    state: absent
   notify: Restart MariaDB
 
 # A direct daemon_reload instead of a handler: the next task starts
