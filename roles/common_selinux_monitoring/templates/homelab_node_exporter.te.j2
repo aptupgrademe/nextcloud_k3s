@@ -1,6 +1,6 @@
 # Managed by Ansible (common_selinux_monitoring) - local SELinux module.
 # Gives node_exporter its own domain instead of unconfined_service_t.
-policy_module(homelab_node_exporter, {{ '1.2.2' if os_is_el10 | bool else '1.2.1' }})
+policy_module(homelab_node_exporter, {{ '1.2.3' if os_is_el10 | bool else '1.2.1' }})
 
 type homelab_node_exporter_t;
 type homelab_node_exporter_exec_t;
@@ -36,6 +36,10 @@ kernel_read_proc_files(homelab_node_exporter_t)
 # alert, found 2026-11-22 on test; the blog had the same fix since 2026-11-06).
 # The interface exists only in the EL10 policy, hence the condition.
 kernel_read_psi(homelab_node_exporter_t)
+# selinux collector: reads the enforce state and /etc/selinux/config. Visible as
+# AVCs on EL10 (on EL9 hidden by dontaudit); same rules as the blog since 2026-11-06.
+selinux_get_enforce_mode(homelab_node_exporter_t)
+seutil_read_config(homelab_node_exporter_t)
 {% endif %}
 kernel_read_network_state(homelab_node_exporter_t)
 kernel_read_network_state_symlinks(homelab_node_exporter_t)
