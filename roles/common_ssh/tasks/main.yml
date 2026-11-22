@@ -136,6 +136,9 @@
       PermitRootLogin prohibit-password
       PermitEmptyPasswords no
       X11Forwarding no
+      {% if ssh_disable_gssapi | bool %}
+      GSSAPIAuthentication no
+      {% endif %}
   notify:
     - Validate sshd config
     - Reload sshd

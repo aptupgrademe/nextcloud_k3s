@@ -3,3 +3,9 @@
 # ansible_port).  The sshd_config file is in roles/common_ssh/files/sshd_config.
 #
 # (No defaults - see the comment below.)
+
+# GSSAPIAuthentication no in 00-hardening.conf (2026-11-22). AlmaLinux's
+# 50-redhat.conf says yes; without a Kerberos keytab nobody can log in that
+# way, but sshd still offers gssapi-keyex/gssapi-with-mic. Rolled out test
+# first (host_vars), the default flips once it has proven itself there.
+ssh_disable_gssapi: false

@@ -1,0 +1,12 @@
+---
+# defaults/ = lowest-priority role variables.
+
+# Console loglevel (2026-11-22). The kernel prints every message below
+# console_loglevel also on tty0; with the default 7 that includes each
+# nftables log line. On the EL10 test VPS (virtio_gpu, nobody watching the
+# virtual screen) the framebuffer then waited for a vblank that never came:
+# "[drm] vblank wait timed out" with a stack trace and the kernel tainted W,
+# five times a day. true = kernel.printk "4 4 1 7": only errors and worse go
+# to the console, everything still lands in the journal. Test first
+# (host_vars), the default flips once it has proven itself there.
+sysctl_console_quiet: false
