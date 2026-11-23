@@ -19,10 +19,9 @@
 #   - GRUB2 bootloader password: real risk of complicating/locking out the
 #     hosting provider's rescue console workflow, for a control (physical
 #     console access) that mostly doesn't apply to a remote VPS.
-#   - Custom crypto policy module for CIS (update-crypto-policies): changes
-#     system-wide TLS/SSH cipher acceptance; could break compatibility with
-#     something (old TLS client hitting the blog, Ansible's own SSH) without
-#     dedicated testing first.
+#   - (Custom crypto policy module for CIS: was on this list until it was
+#     tested and switched on on 2026-11-21 - see configure_custom_crypto_policy_cis
+#     further down. sshd's own algorithm list: common_ssh, ssh_pin_crypto.)
 #   - systemd-journal-remote package: installing a log-forwarding daemon
 #     nothing is configured to use doesn't add security, just attack surface.
 #   - net.ipv4.ip_forward / conf.all.forwarding, rp_filter: see

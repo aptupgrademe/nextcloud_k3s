@@ -204,6 +204,11 @@
 # 100 60 10000) wrote dump.rdb for nothing, and a restore of it after a
 # restart would bring back keys without expiry from the moment of the dump.
 # The blog's Redis pod runs with --save "" for the same reason.
+# Correction 2026-11-23: it ALSO holds the PHP sessions (the nextcloud image
+# sets session.save_handler=redis; PHPREDIS_SESSION:* keys on test). Without
+# snapshots every Redis restart therefore logs out all browser sessions -
+# desktop and mobile clients (app passwords) are not affected. Restart it in
+# the evening (e.g. when rolling out redis_acl_restrict).
 - name: Redis | Disable RDB snapshots
   ansible.builtin.lineinfile:
     path: "{{ nextcloud_kv_conf }}"
