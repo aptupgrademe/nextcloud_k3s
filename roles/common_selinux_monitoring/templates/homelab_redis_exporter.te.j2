@@ -1,0 +1,29 @@
+# Managed by Ansible (common_selinux_monitoring) - local SELinux module.
+# Gives redis_exporter (common_redis_exporter, since 2026-11-23) its own domain.
+policy_module(homelab_redis_exporter, 1.0.0)
+
+type homelab_redis_exporter_t;
+type homelab_redis_exporter_exec_t;
+init_daemon_domain(homelab_redis_exporter_t, homelab_redis_exporter_exec_t)
+# The unit runs with NoNewPrivileges (the MariaDB lesson, see the mysqld_exporter module)
+init_nnp_daemon_domain(homelab_redis_exporter_t)
+
+# First draft from the mysqld_exporter module (same Go exporter pattern):
+# listen on 127.0.0.1:9121, connect to Valkey/Redis on 6379.
+allow homelab_redis_exporter_t self:tcp_socket create_stream_socket_perms;
+corenet_tcp_bind_generic_node(homelab_redis_exporter_t)
+corenet_tcp_bind_unreserved_ports(homelab_redis_exporter_t)
+corenet_tcp_connect_redis_port(homelab_redis_exporter_t)
+kernel_read_system_state(homelab_redis_exporter_t)
+kernel_read_network_state(homelab_redis_exporter_t)
+kernel_read_net_sysctls(homelab_redis_exporter_t)
+kernel_search_network_sysctl(homelab_redis_exporter_t)
+fs_search_cgroup_dirs(homelab_redis_exporter_t)
+fs_read_cgroup_files(homelab_redis_exporter_t)
+dev_read_sysfs(homelab_redis_exporter_t)
+
+{% if selinux_monitoring_permissive | bool or selinux_redis_exporter_permissive | bool %}
+# Learning phase: log denials, do not enforce (CLAUDE.md: own domains go
+# through a permissive phase first, rules are reviewed by hand)
+permissive homelab_redis_exporter_t;
+{% endif %}

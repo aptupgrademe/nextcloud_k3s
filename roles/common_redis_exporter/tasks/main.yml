@@ -1,0 +1,137 @@
+---
+# =============================================================================
+# redis_exporter (oliver006/redis_exporter) for the host Valkey/Redis
+# =============================================================================
+# Same shape as common_mysqld_exporter: own system user, binary from the
+# GitHub release (checked against its sha256 list), listens on 127.0.0.1 only.
+# Differences: the password comes from an EnvironmentFile only root can read
+# (systemd reads it, the process gets it as REDIS_PASSWORD), and the unit is
+# sandboxed from the start. With redis_acl_restrict the default user may not
+# run CONFIG - the exporter does not need it (config metrics are off by default).
+# SELinux domain homelab_redis_exporter_t: common_selinux_monitoring.
+
+- name: redis_exporter | Create system user
+  ansible.builtin.user:
+    name: redis_exporter
+    system: true
+    shell: /sbin/nologin
+    home: /var/lib/redis_exporter
+    create_home: false
+
+- name: redis_exporter | Installed version
+  ansible.builtin.shell: |
+    set -o pipefail
+    /usr/local/bin/redis_exporter --version 2>&1 | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1 | tr -d v
+  register: redis_exporter_installed_version
+  changed_when: false
+  check_mode: false   # read-only query, also runs in --check
+  failed_when: false  # not installed yet -> empty, so it gets installed
+
+- name: redis_exporter | Download archive
+  when: (redis_exporter_installed_version.stdout | trim) != redis_exporter_version
+  ansible.builtin.get_url:
+    url: "https://github.com/oliver006/redis_exporter/releases/download/\
+          v{{ redis_exporter_version }}/\
+          redis_exporter-v{{ redis_exporter_version }}.linux-amd64.tar.gz"
+    dest: "/tmp/redis_exporter-{{ redis_exporter_version }}.tar.gz"
+    mode: "0644"
+    checksum: "sha256:https://github.com/oliver006/redis_exporter/releases/download/v{{ redis_exporter_version }}/sha256sums.txt"
+
+- name: redis_exporter | Extract archive
+  when:
+    - (redis_exporter_installed_version.stdout | trim) != redis_exporter_version
+    - not ansible_check_mode   # --check downloads nothing, so there is nothing to unpack
+  ansible.builtin.unarchive:
+    src: "/tmp/redis_exporter-{{ redis_exporter_version }}.tar.gz"
+    dest: /tmp
+    remote_src: true
+    creates: "/tmp/redis_exporter-v{{ redis_exporter_version }}.linux-amd64/redis_exporter"
+
+- name: redis_exporter | Install binary
+  when:
+    - (redis_exporter_installed_version.stdout | trim) != redis_exporter_version
+    - not ansible_check_mode
+  ansible.builtin.copy:
+    src: "/tmp/redis_exporter-v{{ redis_exporter_version }}.linux-amd64/redis_exporter"
+    dest: /usr/local/bin/redis_exporter
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+  notify: restart redis_exporter
+
+- name: redis_exporter | Remove the download (/tmp is on disk, CLAUDE.md)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/redis_exporter-{{ redis_exporter_version }}.tar.gz"
+    - "/tmp/redis_exporter-v{{ redis_exporter_version }}.linux-amd64"
+
+- name: redis_exporter | Password file (root only, read by systemd)
+  ansible.builtin.copy:
+    dest: /etc/redis_exporter.env
+    owner: root
+    group: root
+    mode: "0600"
+    content: |
+      REDIS_PASSWORD={{ redis_exporter_password }}
+  no_log: true
+  notify: restart redis_exporter
+
+- name: redis_exporter | Install systemd unit
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/redis_exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (common_redis_exporter) - do not edit manually.
+      [Unit]
+      Description=Prometheus Valkey/Redis Exporter
+      After=network.target {{ nextcloud_kv_name }}.service
+
+      [Service]
+      User=redis_exporter
+      EnvironmentFile=/etc/redis_exporter.env
+      ExecStart=/usr/local/bin/redis_exporter \
+        -redis.addr=redis://127.0.0.1:6379 \
+        -web.listen-address={{ redis_exporter_listen }}
+      Restart=on-failure
+      RestartSec=5s
+      # Sandbox: a network client that reads nothing on disk.
+      NoNewPrivileges=yes
+      ProtectSystem=strict
+      ProtectHome=yes
+      PrivateTmp=yes
+      PrivateDevices=yes
+      ProtectKernelTunables=yes
+      ProtectKernelModules=yes
+      ProtectKernelLogs=yes
+      ProtectControlGroups=yes
+      ProtectClock=yes
+      ProtectHostname=yes
+      RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+      RestrictNamespaces=yes
+      RestrictRealtime=yes
+      RestrictSUIDSGID=yes
+      LockPersonality=yes
+      MemoryDenyWriteExecute=yes
+      SystemCallArchitectures=native
+      SystemCallFilter=@system-service
+      CapabilityBoundingSet=
+      IPAddressDeny=any
+      IPAddressAllow=localhost
+
+      [Install]
+      WantedBy=multi-user.target
+  notify:
+    - reload systemd
+    - restart redis_exporter
+
+- name: redis_exporter | Enable and start service
+  ansible.builtin.systemd:
+    name: redis_exporter
+    enabled: true
+    state: started
+    daemon_reload: true

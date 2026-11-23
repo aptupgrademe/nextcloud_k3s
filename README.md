@@ -350,6 +350,7 @@ ansible-vault encrypt inventory/host_vars/<host>/vault.yml
 | `common_loki` | Loki + Grafana Alloy: journal, pod logs, audit.log/fail2ban.log (14 days, 127.0.0.1 only), Loki datasource + log alerts (AVC, fail2ban error, OOM, no logs), dashboard "fail2ban – Bans" |
 | `common_node_exporter` | Host metrics exporter (+ textfile collector in `/var/lib/node_exporter/textfile`, fed by `common_trivy`) |
 | `common_mysqld_exporter` | MariaDB metrics exporter |
+| `common_redis_exporter` | Valkey/Redis metrics exporter (sandboxed, own SELinux domain) |
 | `common_monit` | Watchdog (systemd-sandboxed since 2026-10-19) and **the actual alerting path** – e-mails on resource/service/firewall/pod/TLS-certificate problems (also the host MariaDB and Redis), auto-restarts fail2ban |
 | `common_fail2ban` | Brute-force protection; writes to nftables banned sets; log-watch timer keeps the HTTP jails on the current ingress log |
 | `common_auditd` | Linux audit daemon |

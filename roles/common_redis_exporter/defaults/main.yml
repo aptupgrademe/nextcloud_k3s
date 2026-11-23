@@ -1,0 +1,7 @@
+---
+# defaults/ = lowest-priority role variables.
+# Valkey/Redis exporter for the host Redis of the Nextcloud servers (since
+# 2026-11-23, review: Valkey was not monitored at all). Version pinned in
+# inventory/group_vars/all/versions.yml (redis_exporter_version).
+redis_exporter_password: "{{ nextcloud_redis_pass }}"
+redis_exporter_listen: "127.0.0.1:9121"

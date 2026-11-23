@@ -299,6 +299,15 @@
               "MariaDB antwortet dem mysqld_exporter nicht (oder der Exporter läuft nicht) – Nextcloud ist dann nicht nutzbar. systemctl status mariadb mysqld_exporter",
               "mariadb_up",
           ),
+          # Valkey/Redis down - file locks, cache and PHP sessions (2026-11-23).
+          make_rule(
+              "alert-redis-down",
+              "Valkey/Redis nicht erreichbar",
+              "min(redis_up) or vector(0)",
+              1, "lt",
+              "Valkey/Redis antwortet dem redis_exporter nicht (oder der Exporter läuft nicht) – Datei-Locks, Cache und Anmeldungen von Nextcloud hängen daran. systemctl status redis valkey redis_exporter",
+              "redis_up",
+          ),
           # Container rules (common_kube_metrics). max() turns the per-
           # container series into one value; the dashboard
           # "Container-Ressourcen" shows which container it was.

@@ -53,6 +53,13 @@ scrape_configs:
         labels:
           instance: "nextcloud"
 
+  # Valkey/Redis – host service via common_redis_exporter (since 2026-11-23)
+  - job_name: "redis_nextcloud"
+    static_configs:
+      - targets: ["127.0.0.1:9121"]
+        labels:
+          instance: "nextcloud"
+
   # PHP-FPM – K3s pod (Nextcloud) via NodePort 30254 → php-fpm_exporter sidecar
   - job_name: "php_fpm_nextcloud"
     static_configs:

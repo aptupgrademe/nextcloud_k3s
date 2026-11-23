@@ -94,6 +94,7 @@
     # the pods.
     - { role: common_node_exporter,  tags: [common_node_exporter] }  # Node Exporter (metrics, port 9100)
     - { role: common_mysqld_exporter, tags: [common_mysqld_exporter] } # mysqld_exporter (MariaDB metrics, port 9104)
+    - { role: common_redis_exporter,  tags: [common_redis_exporter] }  # Valkey/Redis exporter (127.0.0.1:9121) for Prometheus
     - { role: common_prometheus,     tags: [common_prometheus] }     # Prometheus (scrapes localhost:9100/9104 + K3s NodePorts, port 9090)
     - { role: common_grafana,        tags: [common_grafana] }        # Grafana (dashboard, port 3000)
     - { role: common_loki,           tags: [common_loki] }           # Loki + Alloy: journal, pod logs, audit/fail2ban log (14 days, local only) + log alerts

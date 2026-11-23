@@ -40,6 +40,7 @@ nextcloud_redis_stream:       "7"                            # AppStream module 
 node_exporter_version:         "1.12.1"   # github.com/prometheus/node_exporter/releases
 prometheus_version:            "3.16.0"   # github.com/prometheus/prometheus/releases
 mysqld_exporter_version:       "0.21.0"   # host MariaDB of the Nextcloud servers
+redis_exporter_version:        "1.97.0"   # host Valkey/Redis of the Nextcloud servers (since 2026-11-23; 1.98.0 of 2026-11-21 after two weeks)
 loki_version:                  "3.7.10"   # rpm.grafana.com (common_loki); github.com/grafana/loki/releases
 alloy_version:                 "1.22.0"   # rpm.grafana.com (common_loki); github.com/grafana/alloy/releases
 trivy_version:                 "0.76.2"   # github.com/aquasecurity/trivy/releases (common_trivy) - see notes
