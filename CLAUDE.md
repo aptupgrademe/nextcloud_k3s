@@ -138,6 +138,11 @@ and in the README. This file only points the way and lists the traps.
   – aggregate `by (pod)`.
 
 ### Nextcloud
+- **A MariaDB series change is never "just the repo"** (EL9, 10.11 -> 11.8 on 2026-11-23): the 11.x
+  server package refuses to install over 10.x, but dnf still lifts client/common/shared and leaves a 10.11
+  server with 11.8 libraries (happened on test). Raise `nextcloud_mariadb_repo_version` and run
+  `--tags next_packages,next_mariadb` in one go - `series_upgrade.yml` dumps, swaps the server package and
+  runs `mariadb-upgrade`. An 11.x client requires TLS: dumping a 10.x server needs `--skip-ssl`.
 - **OPcache runs with `validate_timestamps=0`** – after `occ upgrade` or
   `occ app:update` the pod must be restarted, or old bytecode keeps running.
 - Config files load as `config.php`, then `*.config.php` alphabetically (later

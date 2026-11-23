@@ -72,7 +72,7 @@
 
   roles:
     - { role: common_version_check,  tags: [common_version_check] }  # Pre-flight: show component versions + available updates
-    - { role: next_packages,         tags: [next_packages] }         # Repositories, packages (MariaDB 10.11, Redis) – nginx/PHP run in K3s pods
+    - { role: next_packages,         tags: [next_packages] }         # Repositories, packages (MariaDB 11.8, Redis) – nginx/PHP run in K3s pods
     - { role: common_ssh,            tags: [common_ssh] }            # SSH hardening (port, key-only auth)
     - { role: common_firewall,       tags: [common_firewall] }       # nftables IPv4/IPv6 rules (incl. K3s pod CIDR exceptions)
     - { role: common_sysctl,         tags: [common_sysctl] }         # Kernel tuning: TCP BBR, connection timeouts, backlog

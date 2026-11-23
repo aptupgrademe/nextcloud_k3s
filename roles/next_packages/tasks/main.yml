@@ -25,7 +25,7 @@
 #                  collection, see requirements.yml
 #   rpm_key        imports a GPG key so dnf trusts the repository's packages
 #   {{ var }} inside a task NAME  the name shows the value at run time
-#                  ("... repository (10.11)")
+#                  ("... repository (11.8)")
 
 
 # -----------------------------------------------------------------------------
@@ -91,7 +91,7 @@
 # STEP 4: Add the MariaDB Community repository (series: nextcloud_mariadb_repo_version)
 # -----------------------------------------------------------------------------
 # EL9 only (nextcloud_mariadb_community_repo). EL10 takes mariadb-server from
-# AppStream - the same 10.11 series - and has no DNF modules any more, so
+# AppStream (mariadb11.8-server, the same 11.8 series) and has no DNF modules, so
 # there is neither a repository to add nor a module to disable.
 - name: Packages | Import MariaDB Community GPG key
   ansible.builtin.rpm_key:

@@ -300,6 +300,16 @@
 <div class="callout callout-info">
   <strong>Warum noch AlmaLinux 9 und nicht 10?</strong> AlmaLinux 10 gibt es seit Mai 2025. Die Rollen bleiben vorerst bei 9: Die Version ist im Produktivbetrieb erprobt, EPEL, die SELinux-Richtlinie für K3s, der CIS-Benchmark und Paketquellen wie die von MariaDB sind dafür ausgereift, und Sicherheitsupdates gibt es bis Mai 2032 (aktive Weiterentwicklung bis Mai 2027). Der Umstieg kommt später, als neuer Server per Playbook mit zurückgespielten Daten, nicht als In-place-Upgrade. <strong>Die Rollen sind gegen AlmaLinux 10.3 getestet</strong> (November 2026, frischer Testserver, kompletter Lauf, Drift-Check <code>changed=0</code>): Alles, was sich zwischen 9 und 10 unterscheidet, wird in <code>inventory/group_vars/all/os.yml</code> aus den Facts abgeleitet (Valkey statt Redis, MariaDB 11.8 aus AppStream – die von Nextcloud 35 empfohlene Version, k3s-selinux aus Ranchers Testing-Kanal, <code>kernel-modules-extra</code> für die Netfilter-Module von K3s, das Paket <code>audit-rules</code>, ein journald-Drop-in, die umgedrehte Äquivalenz <code>/run</code> ↔ <code>/var/run</code> in den SELinux-Dateikontexten). Auf AlmaLinux 9 erzeugen die Rollen genau dasselbe wie vorher.
 </div>
+<div class="callout callout-info">
+  <strong>MariaDB-Serie wechseln (EL9, z.&nbsp;B. 10.11 → 11.8)</strong>
+  Die Serie steht in <code>nextcloud_mariadb_repo_version</code> (<code>versions.yml</code>). Wird sie erhöht, erledigt der
+  nächste Lauf mit <code>--tags next_packages,next_mariadb</code> den Wechsel in einem Zug: Wartungsmodus an, vollständiger Dump
+  nach <code>/root/mariadb-series-upgrade/</code>, altes Serverpaket entfernen (das 11.x-Paket verweigert ein Upgrade über 10.x),
+  neues installieren, <code>mariadb-upgrade</code>, Wartungsmodus aus. Bis dahin nimmt das allgemeine Update MariaDB aus.
+  Nie nur das Repository umstellen: dnf hebt sonst Client und Bibliotheken an und lässt den alten Server stehen.
+  Am 23.11.2026 auf 11.8: Nextcloud war 108&nbsp;s (sofie, 65&nbsp;MB) bzw. 155&nbsp;s (cvjm, 379&nbsp;MB) im Wartungsmodus,
+  fast nur für die Pakete. Den Dump danach von Hand löschen.
+</div>
 
 <div class="card-grid">
   <div class="card">
@@ -316,7 +326,7 @@
   </div>
   <div class="card">
     <div class="label">Datenbank</div>
-    <div class="value">MariaDB 10.11 (Host)</div>
+    <div class="value">MariaDB 11.8 (Host)</div>
   </div>
   <div class="card">
     <div class="label">Cache / Locking</div>
@@ -374,7 +384,7 @@
         ▼                ▼
 <span class="c-host">┌──────────────┐   ┌───────────┐</span>
 <span class="c-host">│  MariaDB     │   │  Redis    │</span>
-<span class="c-host">│  10.11 Host  │   │  7.x Host │</span>
+<span class="c-host">│  11.8 Host   │   │  7.x Host │</span>
 <span class="c-host">└──────────────┘   └───────────┘</span>
         │
 <span class="c-storage">┌───────────────────────────────────────────┐</span>
@@ -766,7 +776,7 @@ kubectl -n default run nptest --image=busybox:1 --restart=Never --rm -i -- \
 <h3>Ansible-Rollen (Nextcloud-spezifisch)</h3>
 <table>
   <tr><th>Rolle</th><th>Aufgabe</th></tr>
-  <tr><td><code>next_packages</code></td><td>Repositories (MariaDB 10.11), Pakete (MariaDB, Redis, SELinux-Tools)</td></tr>
+  <tr><td><code>next_packages</code></td><td>Repositories (MariaDB 11.8), Pakete (MariaDB, Redis, SELinux-Tools)</td></tr>
   <tr><td><code>next_mariadb</code></td><td>MariaDB-Setup, Datenbank und Benutzer anlegen, bind-address auf 0.0.0.0</td></tr>
   <tr><td><code>next_redis</code></td><td>Redis-Bind-Konfiguration (localhost + Host-IP)</td></tr>
   <tr><td><code>common_selinux</code> (<code>stack: nextcloud</code>)</td><td>SELinux enforcing, <code>container_file_t</code> für HostPath-Verzeichnisse (gemeinsam mit dem Blog)</td></tr>

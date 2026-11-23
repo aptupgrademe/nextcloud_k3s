@@ -44,7 +44,7 @@ loki_version:                  "3.7.10"   # rpm.grafana.com (common_loki); githu
 alloy_version:                 "1.22.0"   # rpm.grafana.com (common_loki); github.com/grafana/alloy/releases
 trivy_version:                 "0.76.2"   # github.com/aquasecurity/trivy/releases (common_trivy) - see notes
 trivy_sha256:                  "bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf"   # trivy_<v>_Linux-64bit.tar.gz, from trivy_<v>_checksums.txt
-nextcloud_mariadb_repo_version: "10.11"   # MariaDB Community repo series on the Nextcloud hosts
+nextcloud_mariadb_repo_version: "11.8"    # MariaDB Community repo series on the Nextcloud hosts (10.11 until 2026-11-23)
 
 
 # =============================================================================

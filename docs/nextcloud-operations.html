@@ -300,6 +300,16 @@
 <div class="callout callout-info">
   <strong>Why still AlmaLinux 9 and not 10?</strong> AlmaLinux 10 has been available since May 2025. The roles stay on 9 for now: it is proven in production, EPEL, the SELinux policy for K3s, the CIS benchmark and repositories such as MariaDB’s are mature for it, and it gets security updates until May 2032 (active development until May 2027). The move comes later – as a new server set up by the playbook with the data restored, not as an in-place upgrade. <strong>The roles are tested against AlmaLinux 10.3</strong> (November 2026, a fresh test server, full run, drift check <code>changed=0</code>): everything that differs between 9 and 10 is derived from the facts in <code>inventory/group_vars/all/os.yml</code> (Valkey instead of Redis, MariaDB 11.8 from AppStream – the version Nextcloud 35 recommends, k3s-selinux from Rancher’s testing channel, <code>kernel-modules-extra</code> for the K3s netfilter modules, the <code>audit-rules</code> package, a journald drop-in, the reversed <code>/run</code> ↔ <code>/var/run</code> alias in SELinux file contexts). On AlmaLinux 9 the roles produce exactly what they did before.
 </div>
+<div class="callout callout-info">
+  <strong>Changing the MariaDB series (EL9, e.g. 10.11 → 11.8)</strong>
+  The series is <code>nextcloud_mariadb_repo_version</code> (<code>versions.yml</code>). When it is raised, the next run with
+  <code>--tags next_packages,next_mariadb</code> does the move in one go: maintenance mode on, full dump to
+  <code>/root/mariadb-series-upgrade/</code>, remove the old server package (the 11.x package refuses to upgrade over 10.x),
+  install the new one, <code>mariadb-upgrade</code>, maintenance mode off. Until then the full update leaves MariaDB alone.
+  Never change only the repository: dnf would lift the client and libraries and leave the old server in place.
+  Moved to 11.8 on 2026-11-23: Nextcloud was in maintenance mode for 108&nbsp;s (sofie, 65&nbsp;MB) and 155&nbsp;s (cvjm, 379&nbsp;MB),
+  almost all of it for the packages. Delete the dump by hand afterwards.
+</div>
 
 <div class="card-grid">
   <div class="card">
@@ -316,7 +326,7 @@
   </div>
   <div class="card">
     <div class="label">Database</div>
-    <div class="value">MariaDB 10.11 (Host)</div>
+    <div class="value">MariaDB 11.8 (Host)</div>
   </div>
   <div class="card">
     <div class="label">Cache / Locking</div>
@@ -374,7 +384,7 @@
         ▼                ▼
 <span class="c-host">┌──────────────┐   ┌───────────┐</span>
 <span class="c-host">│  MariaDB     │   │  Redis    │</span>
-<span class="c-host">│  10.11 Host  │   │  7.x Host │</span>
+<span class="c-host">│  11.8 Host   │   │  7.x Host │</span>
 <span class="c-host">└──────────────┘   └───────────┘</span>
         │
 <span class="c-storage">┌───────────────────────────────────────────┐</span>
@@ -764,7 +774,7 @@ kubectl -n default run nptest --image=busybox:1 --restart=Never --rm -i -- \
 <h3>Ansible Roles (Nextcloud-specific)</h3>
 <table>
   <tr><th>Role</th><th>Task</th></tr>
-  <tr><td><code>next_packages</code></td><td>Repositories (MariaDB 10.11), packages (MariaDB, Redis, SELinux tools)</td></tr>
+  <tr><td><code>next_packages</code></td><td>Repositories (MariaDB 11.8), packages (MariaDB, Redis, SELinux tools)</td></tr>
   <tr><td><code>next_mariadb</code></td><td>MariaDB setup, create database and user, bind-address to 0.0.0.0</td></tr>
   <tr><td><code>next_redis</code></td><td>Redis bind configuration (localhost + host IP)</td></tr>
   <tr><td><code>common_selinux</code> (<code>stack: nextcloud</code>)</td><td>SELinux enforcing, <code>container_file_t</code> for HostPath directories (shared with the blog)</td></tr>

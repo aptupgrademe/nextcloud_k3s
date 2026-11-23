@@ -60,7 +60,7 @@ Internet
 
 ### Nextcloud
 
-- **Nextcloud 35** with PHP-FPM, nginx sidecar, Redis (host service) and MariaDB 10.11
+- **Nextcloud 35** with PHP-FPM, nginx sidecar, Redis (host service) and MariaDB 11.8
 - **Collabora CODE** (online office) with WOPI integration
 - **NetworkPolicies**, enforced by K3s's embedded policy controller
   (kube-router): on Nextcloud, Collabora can never reach MariaDB/Redis directly, and
