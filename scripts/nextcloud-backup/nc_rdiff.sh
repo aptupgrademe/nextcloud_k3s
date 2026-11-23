@@ -63,7 +63,10 @@ $RDIFF backup "${INCLUDES[@]}" --exclude "**" "$SRC" "$DST" || fail "rdiff-backu
 log "Versionen älter als $KEEP entfernen ..."
 # Solange es keine Version älter als $KEEP gibt (die ersten $KEEP nach dem Start), endet
 # "remove increments" mit Warnung und Exit != 0 – das ist kein Fehler.
-if ! OUT=$($RDIFF remove increments --older-than "$KEEP" "$DST" 2>&1); then
+# --force: ohne entfernt rdiff-backup höchstens EINE Version und bricht sonst ab.
+# Nach ein paar Tagen ohne Lauf (Backup-PC aus) blieben so alle alten Versionen
+# liegen, nur mit einem "Hinweis" im Log (Review 2026-11-23).
+if ! OUT=$($RDIFF --force remove increments --older-than "$KEEP" "$DST" 2>&1); then
     if grep -q "No increment is older" <<<"$OUT"; then log "Keine Versionen älter als $KEEP – nichts zu entfernen"
     else echo "$OUT"; log "Hinweis: remove increments meldete einen Fehler"; fi
 else [ -n "$OUT" ] && echo "$OUT"; fi

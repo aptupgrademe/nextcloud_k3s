@@ -86,7 +86,7 @@ log "--- DB-Dump $DB_NAME ---"
 DUMP_START=$SECONDS
 # mariadb-dump, falls back to mysqldump: MariaDB 11.8 (EL10) warns that the
 # mysqldump name "will be removed in a future release" (2026-11-21).
-$SSH "$TARGET" "\$(command -v mariadb-dump || command -v mysqldump) --single-transaction --quick --routines --events $DB_NAME | gzip" > "$DUMP.part" \
+$SSH "$TARGET" "\$(command -v mariadb-dump || command -v mysqldump) --single-transaction --quick --routines --events --default-character-set=utf8mb4 $DB_NAME | gzip" > "$DUMP.part" \
     || fail "DB-Dump (mariadb-dump) fehlgeschlagen"
 gzip -t "$DUMP.part" || fail "Dump ist kein gültiges gzip"
 zcat "$DUMP.part" | tail -n 1 | grep -q "Dump completed" || fail "Dump unvollständig"
