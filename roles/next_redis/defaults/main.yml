@@ -32,4 +32,3 @@ redis_acl_denied_commands:
   - restore
   - failover
   - acl
-
