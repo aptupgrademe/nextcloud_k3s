@@ -96,7 +96,15 @@ read -r -p "    Type the environment name ($ENV) to continue: " answer || { echo
 echo "[1/8] Enabling maintenance mode ..."
 $SSH_CMD "$OCC maintenance:mode --on" || true
 
-echo "[2/8] Scaling down Nextcloud deployment ..."
+echo "[2/8] Scaling down Nextcloud, notify_push and the cron job ..."
+# The CronJob keeps starting a pod every 5 minutes even with the deployment at
+# 0, and config.php from the backup (step 3) has maintenance mode OFF - cron
+# would run against half-restored files and an old database for the whole
+# restore (review finding 2026-11-23). Suspend it, remove running cron pods,
+# stop notify_push too; step 7 resumes everything.
+$SSH_CMD "k3s kubectl patch cronjob/nextcloud-cron -n $NAMESPACE -p '{\"spec\":{\"suspend\":true}}'"
+$SSH_CMD "k3s kubectl get jobs -n $NAMESPACE -o name | grep nextcloud-cron | xargs -r k3s kubectl delete -n $NAMESPACE" || true
+$SSH_CMD "k3s kubectl scale deployment/notify-push -n $NAMESPACE --replicas=0" || true
 $SSH_CMD "k3s kubectl scale deployment/$DEPLOYMENT -n $NAMESPACE --replicas=0"
 $SSH_CMD "k3s kubectl wait pod \
   --selector app=$DEPLOYMENT -n $NAMESPACE \
@@ -130,6 +138,8 @@ echo "[8/8] Rebuilding file index and disabling maintenance mode ..."
 $SSH_CMD "$OCC maintenance:mode --off"
 $SSH_CMD "$OCC maintenance:data-fingerprint"
 $SSH_CMD "$OCC files:scan --all"
+$SSH_CMD "k3s kubectl scale deployment/notify-push -n $NAMESPACE --replicas=1" || true
+$SSH_CMD "k3s kubectl patch cronjob/nextcloud-cron -n $NAMESPACE -p '{\"spec\":{\"suspend\":false}}'"
 
 echo ""
 echo "Restore complete."
