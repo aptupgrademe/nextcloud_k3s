@@ -305,7 +305,7 @@
 # EL10 (systemd 257) ships no /etc/systemd/journald.conf any more, only the
 # defaults in /usr/lib/systemd/journald.conf (found 2026-11-21). The same
 # three settings go into a drop-in there; EL9 keeps the edited file above.
-- name: CIS | Ensure /etc/systemd/journald.conf.d exists (EL10)
+- name: CIS | Ensure /etc/systemd/journald.conf.d exists (EL10 or journald only)
   ansible.builtin.file:
     path: /etc/systemd/journald.conf.d
     state: directory
@@ -599,7 +599,7 @@
 # IP forwarding/rp_filter/log_martians (K3s needs them, see common_sysctl),
 # firewalld (nftables), key-only root login (Ansible), the password and PAM
 # rules (no password logins exist), a GRUB password (it would lock the
-# provider console), rsyslog off (/var/log/messages is still used by hand).
+# provider console). rsyslog off came later (cis_journald_only, 2026-11-23).
 # -----------------------------------------------------------------------------
 
 # file_permissions_boot_grub2: grubenv came as 0644; grub.cfg is already 0600.
