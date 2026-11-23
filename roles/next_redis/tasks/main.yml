@@ -105,10 +105,34 @@
   register: redis_dropin
   notify: Restart Redis
 
+- name: Redis | Accept connections only from localhost and the pod network (systemd)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/{{ nextcloud_kv_name }}.service.d/99-zz-ip-allow.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible - do not edit manually. host_db_ip_restrict (group_vars/all/main.yml):
+      # only localhost and the pod network, independent of nftables.
+      [Service]
+      IPAddressDeny=any
+      IPAddressAllow=localhost {{ k3s_pod_cidr }}
+  when: host_db_ip_restrict | bool
+  register: redis_ipallow
+  notify: Restart Redis
+
+- name: Redis | No IP allow list while host_db_ip_restrict is off
+  ansible.builtin.file:
+    path: /etc/systemd/system/{{ nextcloud_kv_name }}.service.d/99-zz-ip-allow.conf
+    state: absent
+  when: not (host_db_ip_restrict | bool)
+  register: redis_ipallow_off
+  notify: Restart Redis
+
 - name: Redis | Reload systemd so the drop-in takes effect
   ansible.builtin.systemd:
     daemon_reload: true
-  when: redis_dropin is changed
+  when: redis_dropin is changed or redis_ipallow is changed or redis_ipallow_off is changed
 
 
 # -----------------------------------------------------------------------------
@@ -202,8 +226,21 @@
     path: "{{ nextcloud_kv_data_dir }}/dump.rdb"
     state: absent
 
+# With host_db_ip_restrict the host itself may not connect to its public IP
+# (only localhost and the pod network): wait on 127.0.0.1 and check the
+# listening socket on the node IP instead (found 2026-11-23 on test).
 - name: Redis | Wait for Redis to be ready on host IP
   ansible.builtin.wait_for:
-    host: "{{ nextcloud_ipv4 }}"
+    host: "{{ '127.0.0.1' if host_db_ip_restrict | bool else nextcloud_ipv4 }}"
     port: 6379
     timeout: 30
+
+- name: Redis | Listening on the node IP for the pods (with host_db_ip_restrict)
+  ansible.builtin.command: ss -Hltn src {{ nextcloud_ipv4 }} sport = :6379
+  register: redis_listen
+  until: redis_listen.stdout | length > 0
+  retries: 15
+  delay: 2
+  changed_when: false
+  check_mode: false   # read-only query, also runs in --check
+  when: host_db_ip_restrict | bool

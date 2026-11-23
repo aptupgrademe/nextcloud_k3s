@@ -43,6 +43,13 @@ k3s_service_cidr: "10.43.0.0/16"
 # Experiment on the test host first (2026-11-23, host_vars), production
 # stays on iptables until it has proven itself.
 k3s_kube_proxy_nftables: false
+
+# Second layer next to nftables for the database services on the host
+# (review finding 2026-11-23): MariaDB and Valkey/Redis accept connections
+# only from localhost and the pod network, via systemd IPAddressDeny/Allow
+# (BPF in the service's cgroup, independent of the firewall). Unix sockets
+# (backups, Ansible, the exporter) are not affected. Test first.
+host_db_ip_restrict: false
 k3s_nodeport_scrape_ip: "{{ server_ipv4 if (k3s_kube_proxy_nftables | bool) else '127.0.0.1' }}"
 
 # HostPath directory for Nextcloud application files (PHP, apps, config, themes).

@@ -151,6 +151,28 @@
   when: nextcloud_mariadb_community_repo | bool and nextcloud_mariadb_repo_version is version('11', '<')
   notify: Restart MariaDB
 
+- name: MariaDB | Accept connections only from localhost and the pod network (systemd)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/mariadb.service.d/99-zz-ip-allow.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible - do not edit manually. host_db_ip_restrict (group_vars/all/main.yml):
+      # only localhost and the pod network, independent of nftables.
+      [Service]
+      IPAddressDeny=any
+      IPAddressAllow=localhost {{ k3s_pod_cidr }}
+  when: host_db_ip_restrict | bool
+  notify: Restart MariaDB
+
+- name: MariaDB | No IP allow list while host_db_ip_restrict is off
+  ansible.builtin.file:
+    path: /etc/systemd/system/mariadb.service.d/99-zz-ip-allow.conf
+    state: absent
+  when: not (host_db_ip_restrict | bool)
+  notify: Restart MariaDB
+
 # A direct daemon_reload instead of a handler: the next task starts
 # MariaDB, and it must start WITH the drop-in on a fresh host.
 # The drop-in has to be live before the service starts, otherwise the first run
