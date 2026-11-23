@@ -120,6 +120,21 @@ loki.process "files" {
       location = "{{ _loki_host_tz }}"
     }
   }
+  // nextcloud.log: JSON lines with "time" in RFC 3339 and a numeric level
+  // (0 debug .. 4 fatal) that becomes a label for alert queries.
+  stage.match {
+    selector = "{job=\"nextcloud\"}"
+    stage.json {
+      expressions = { ts = "time", level = "level" }
+    }
+    stage.timestamp {
+      source = "ts"
+      format = "RFC3339"
+    }
+    stage.labels {
+      values = { level = "" }
+    }
+  }
   stage.label_drop {
     values = ["filename"]
   }

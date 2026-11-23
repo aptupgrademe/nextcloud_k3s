@@ -113,6 +113,7 @@
       ExecStart=/usr/local/bin/node_exporter \
         --web.listen-address=127.0.0.1:9100 \
         --collector.textfile.directory=/var/lib/node_exporter/textfile \
+        --no-collector.nfs --no-collector.nfsd \
         --collector.netdev.device-exclude=^(veth.*|cni[0-9]+|flannel\\.[0-9]+|docker[0-9]+|br-.*|kube-ipvs.*|dummy.*|lo|nodelocaldns)$
       Restart=on-failure
       RestartSec=5s

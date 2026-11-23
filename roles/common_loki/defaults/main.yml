@@ -13,3 +13,7 @@ alloy_http_port: 12345
 loki_file_sources:
   - { path: /var/log/audit/audit.log, job: audit }
   - { path: /var/log/fail2ban.log, job: fail2ban }
+  # Nextcloud's own log (JSON lines, in the data directory on the host).
+  # Not shipped until 2026-11-23 (review: app errors were only visible in
+  # the admin UI). Alloy reads it with CAP_DAC_READ_SEARCH (owner www-data, 0640).
+  - { path: "{{ nextcloud_data_dir | default('/data') }}/nextcloud.log", job: nextcloud }
