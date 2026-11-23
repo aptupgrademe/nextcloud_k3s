@@ -237,6 +237,20 @@
       ProtectKernelModules=yes
       ProtectControlGroups=yes
       SystemCallArchitectures=native
+      # Review 2026-11-23 (H6-H8): syscall filter, no W+X memory, no namespaces.
+      # adjtimex is in @clock: the timex collector only READS the clock state
+      # with it (ProtectClock would forbid it, so that one stays off).
+      SystemCallFilter=@system-service adjtimex
+      # A blocked call returns EPERM instead of killing the process: with the
+      # default action node_exporter died with SIGSYS every 15 s on test
+      # (2026-11-23, no audit record). With EPERM all collectors report as
+      # before (the same 12 fail as without the filter: no ZFS/NVMe/... here).
+      SystemCallErrorNumber=EPERM
+      MemoryDenyWriteExecute=yes
+      RestrictNamespaces=yes
+      PrivateDevices=yes
+      ProtectKernelLogs=yes
+      ProtectHostname=yes
   notify:
     - reload systemd
     - restart node_exporter

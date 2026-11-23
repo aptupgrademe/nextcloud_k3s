@@ -263,6 +263,14 @@
       ProtectKernelModules=yes
       ProtectControlGroups=yes
       SystemCallArchitectures=native
+      # Review 2026-11-23 (H6-H8): syscall filter, no W+X memory, no namespaces.
+      SystemCallFilter=@system-service
+      MemoryDenyWriteExecute=yes
+      RestrictNamespaces=yes
+      PrivateDevices=yes
+      ProtectKernelLogs=yes
+      ProtectClock=yes
+      ProtectHostname=yes
   notify:
     - reload systemd
     - restart prometheus
