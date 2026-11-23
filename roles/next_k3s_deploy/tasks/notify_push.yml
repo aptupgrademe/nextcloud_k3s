@@ -58,7 +58,9 @@
 # one from redis.config.php (Secret), which wins - so after a password
 # rotation Nextcloud worked and the push daemon did not (found 2026-10-20).
 # This copies the Secret's value into config.php when they differ, inside
-# the pod, so the password never appears on the host's command line.
+# the pod, so the password never appears in an Ansible command line. The
+# occ call itself gets it as --value: for that fraction of a second (only on
+# a rotation) it is visible in the host's ps, like any container process.
 - name: notify_push | Keep the Redis password in config.php in sync
   ansible.builtin.command:
     argv: [k3s, kubectl, exec, -i, deployment/nextcloud, --namespace, nextcloud,

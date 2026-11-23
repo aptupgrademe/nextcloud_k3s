@@ -183,3 +183,4 @@
   changed_when: false
   check_mode: false   # read-only query, also runs in --check
   failed_when: false
+  no_log: true   # environment holds the Grafana password (same as common_loki/common_grafana)
