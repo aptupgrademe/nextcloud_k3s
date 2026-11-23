@@ -127,7 +127,9 @@ spec:
         # credentials live in config.php.
         - name: MYSQL_PASSWORD_FILE
           value: /etc/secrets/mysql-password
-        # Nextcloud admin (only used during initial install)
+{% if nc_installed_check.rc | default(1) != 0 %}
+        # Nextcloud admin (only used during initial install - left out once
+        # config.php says installed, see tasks/nextcloud.yml)
         - name: NEXTCLOUD_ADMIN_USER
           valueFrom:
             secretKeyRef:
@@ -135,6 +137,7 @@ spec:
               key: admin-user
         - name: NEXTCLOUD_ADMIN_PASSWORD_FILE
           value: /etc/secrets/admin-password
+{% endif %}
         # Redis
         - name: REDIS_HOST
           valueFrom:
@@ -410,8 +413,10 @@ spec:
           items:
           - key: mysql-password
             path: mysql-password
+{% if nc_installed_check.rc | default(1) != 0 %}
           - key: admin-password
             path: admin-password
+{% endif %}
           - key: smtp-password
             path: smtp-password
           defaultMode: 0444

@@ -35,6 +35,17 @@
       {{ nextcloud_image_fpm in (nc_deploy_info.resources | map(attribute='spec.template.spec.containers')
          | flatten | map(attribute='image') | list) }}
 
+# The admin credentials are only read by the image's first installation.
+# Once config.php says installed, the pod no longer gets them (review H2,
+# 2026-11-23): before, the admin password stayed readable for www-data in
+# /etc/secrets for the pod's whole life.
+- name: Nextcloud | Already installed? (config.php on the host)
+  ansible.builtin.command: grep -q "'installed' => true" {{ nextcloud_k3s_www_dir }}/config/config.php
+  register: nc_installed_check
+  changed_when: false
+  failed_when: false
+  check_mode: false   # read-only query, also runs in --check
+
 - name: Nextcloud | Apply Deployment + Service
   kubernetes.core.k8s:
     kubeconfig: "{{ k3s_kubeconfig }}"
