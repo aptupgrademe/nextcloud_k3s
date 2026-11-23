@@ -324,6 +324,9 @@
   ansible.builtin.get_url:
     url: "https://github.com/k3s-io/k3s/releases/download/{{ k3s_version }}/k3s"
     dest: /usr/local/bin/k3s
+    # Checked against the release's published sha256 list (review R5,
+    # 2026-11-23): a corrupt or swapped download fails here instead of running.
+    checksum: "sha256:https://github.com/k3s-io/k3s/releases/download/{{ k3s_version }}/sha256sum-amd64.txt"
     # force: without it get_url skips the download whenever the destination
     # already exists - an upgrade then silently did nothing (found
     # 2026-10-19: the drift check listed no K3s change for v1.37.1). The

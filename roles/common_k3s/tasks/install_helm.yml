@@ -38,6 +38,9 @@
   ansible.builtin.get_url:
     url: "https://get.helm.sh/helm-{{ helm_version }}-linux-amd64.tar.gz"
     dest: /tmp/helm.tar.gz
+    # Checked against the release's published sha256 list (review R5,
+    # 2026-11-23): a corrupt or swapped download fails here instead of running.
+    checksum: "sha256:https://get.helm.sh/helm-{{ helm_version }}-linux-amd64.tar.gz.sha256sum"
     mode: "0644"
   when: not helm_binary.stat.exists or (helm_installed_version.stdout | trim) != helm_version
   register: helm_download

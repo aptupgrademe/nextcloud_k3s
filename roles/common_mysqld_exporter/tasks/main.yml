@@ -58,6 +58,9 @@
           mysqld_exporter-{{ mysqld_exporter_version }}.linux-amd64.tar.gz"
     dest: "/tmp/mysqld_exporter-{{ mysqld_exporter_version }}.tar.gz"
     mode: "0644"
+    # Checked against the release's published sha256 list (review R5,
+    # 2026-11-23): a corrupt or swapped download fails here instead of running.
+    checksum: "sha256:https://github.com/prometheus/mysqld_exporter/releases/download/v{{ mysqld_exporter_version }}/sha256sums.txt"
 
 - name: mysqld_exporter | Extract archive
   when:
