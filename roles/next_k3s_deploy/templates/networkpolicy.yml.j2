@@ -166,3 +166,21 @@ spec:
     - protocol: TCP
       port: 443
 {% endif %}
+{% if k8s_default_ns_deny | bool %}
+---
+# k8s_default_ns_deny (group_vars/all/main.yml): nothing runs in "default",
+# but a pod smuggled into the cluster typically lands there - and the host
+# firewall lets the whole pod network reach MariaDB/Valkey on the node IP.
+# No rules = no ingress and no egress for any pod in this namespace.
+# Switching the variable off later does not delete it (kubectl delete).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: default
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+{% endif %}
