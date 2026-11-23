@@ -139,12 +139,31 @@
 # kernel there always fails. Security kernel updates still land via
 # dnf-automatic (common_dnf_automatic), which runs locally via a systemd
 # timer, outside the SSH session and thus unaffected by that sandboxing.
+# While the installed MariaDB server is older than the repository series
+# (e.g. 10.11 installed, repo moved to 11.8), the full update must leave the
+# MariaDB packages alone: the 11.x server package refuses to upgrade over 10.x,
+# but dnf still upgrades client/common/shared and leaves a 10.11 server with
+# 11.8 libraries (found 2026-11-23 on test). next_mariadb (series_upgrade.yml)
+# does the whole move later in the same run.
+- name: Packages | Installed MariaDB server version (EL9, Community repository)
+  ansible.builtin.command: rpm -q --qf '%{VERSION}' MariaDB-server  # noqa: command-instead-of-module - one version, not all package_facts
+  register: pkg_mariadb_version
+  changed_when: false
+  check_mode: false   # read-only query, also runs in --check
+  failed_when: false
+  when: nextcloud_mariadb_community_repo | bool
+
 - name: Packages | Upgrade all system packages to the latest version  # noqa: package-latest - a full update is the point of this task
   ansible.builtin.dnf:
     name: "*"
     state: latest
     update_cache: true
-    exclude: kernel*
+    exclude: "{{ ['kernel*'] + (['MariaDB-*', 'galera-4'] if mariadb_series_upgrade_pending else []) }}"
+  vars:
+    mariadb_series_upgrade_pending: >-
+      {{ (nextcloud_mariadb_community_repo | bool)
+         and (pkg_mariadb_version.rc | default(1)) == 0
+         and (pkg_mariadb_version.stdout is version(nextcloud_mariadb_repo_version, '<')) }}
 
 
 # -----------------------------------------------------------------------------
@@ -199,10 +218,15 @@
   when: not (os_is_el10 | bool)
 
 - name: Packages | Switch Redis to the module stream {{ nextcloud_redis_stream }}
+  # On a fresh server redis is not installed yet (the dnf task below installs
+  # it): try-restart then fails with "Unit redis.service not found", rc 5
+  # (found 2026-11-23 on the first EL9 install since the stream switch).
   ansible.builtin.shell: |
-    set -o pipefail
+    set -eo pipefail
     dnf -y module switch-to "redis:{{ nextcloud_redis_stream }}"
-    systemctl try-restart redis
+    if systemctl cat redis.service >/dev/null 2>&1; then
+      systemctl try-restart redis
+    fi
   when:
     - not (os_is_el10 | bool)
     - redis_module_enabled.stdout is not search('(?m)^redis\\s+' ~ nextcloud_redis_stream ~ '\\s+\\S*\\s*\\[e\\]')

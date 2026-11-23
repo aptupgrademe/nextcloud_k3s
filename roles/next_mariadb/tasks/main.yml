@@ -127,6 +127,30 @@
     state: absent
   notify: Restart MariaDB
 
+# MariaDB 11 from the Community repository on EL9 needs the same chown
+# allowance as 11.8 on EL10 (see above). Own file, so the EL10 drop-in and
+# EL9 hosts on 10.11 stay unchanged; absent again if the series goes back.
+- name: MariaDB | Allow chown for MariaDB 11 (EL9, Community repository)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/mariadb.service.d/99-zz-mariadb11.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (next_mariadb) - do not edit manually.
+      # MariaDB 11 calls chown(): see the comment in next_mariadb/tasks/main.yml.
+      [Service]
+      SystemCallFilter=@chown
+  when: nextcloud_mariadb_community_repo | bool and nextcloud_mariadb_repo_version is version('11', '>=')
+  notify: Restart MariaDB
+
+- name: MariaDB | No chown allowance while the repository series is 10.x (EL9)
+  ansible.builtin.file:
+    path: /etc/systemd/system/mariadb.service.d/99-zz-mariadb11.conf
+    state: absent
+  when: nextcloud_mariadb_community_repo | bool and nextcloud_mariadb_repo_version is version('11', '<')
+  notify: Restart MariaDB
+
 # A direct daemon_reload instead of a handler: the next task starts
 # MariaDB, and it must start WITH the drop-in on a fresh host.
 # The drop-in has to be live before the service starts, otherwise the first run
@@ -134,6 +158,25 @@
 - name: MariaDB | Reload systemd so the drop-in takes effect
   ansible.builtin.systemd:
     daemon_reload: true
+
+# Moving to a newer series of the Community repository (EL9) is a one-time
+# upgrade with dump and mariadb-upgrade - see series_upgrade.yml. The plain
+# dnf task above only installs (state: present) and never changes the series.
+- name: MariaDB | Installed server version (EL9, Community repository)
+  ansible.builtin.command: rpm -q --qf '%{VERSION}' MariaDB-server  # noqa: command-instead-of-module - one version, not all package_facts
+  register: mariadb_rpm_version
+  changed_when: false
+  check_mode: false   # read-only query, also runs in --check
+  failed_when: false
+  when: nextcloud_mariadb_community_repo | bool
+
+- name: MariaDB | Upgrade to the series of the repository
+  ansible.builtin.include_tasks: series_upgrade.yml
+  when:
+    - nextcloud_mariadb_community_repo | bool
+    - mariadb_rpm_version.rc | default(1) == 0
+    - mariadb_rpm_version.stdout is version(nextcloud_mariadb_repo_version, '<')
+    - not ansible_check_mode
 
 - name: MariaDB | Ensure MariaDB service is enabled and started
   ansible.builtin.service:

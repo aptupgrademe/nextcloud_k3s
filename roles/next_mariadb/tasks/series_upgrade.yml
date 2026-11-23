@@ -1,0 +1,96 @@
+---
+# One-time move to another MariaDB series of the Community repository on EL9
+# (e.g. 10.11 -> 11.8), included from main.yml when the installed server is
+# older than nextcloud_mariadb_repo_version. It has to happen in the same run
+# that changes the repository: the 11.x server package refuses to replace a
+# 10.x server, but a plain update (next_packages, or update-vendor-repos at
+# 02:15) still lifts client/common/shared and leaves a 10.11 server with 11.8
+# libraries (found 2026-11-23 on test). next_packages therefore excludes
+# MariaDB from its full update while this upgrade is pending.
+#
+# Order: Nextcloud maintenance mode on -> full dump (root only) -> stop ->
+# upgrade the MariaDB-* packages -> start -> mariadb-upgrade -> maintenance
+# mode off. The dump stays in /root/mariadb-series-upgrade/ until it is
+# deleted by hand. The duration is printed at the end.
+
+- name: MariaDB upgrade | Start time
+  ansible.builtin.set_fact:
+    mariadb_upgrade_start: "{{ now(utc=true).timestamp() | int }}"
+
+- name: MariaDB upgrade | Nextcloud maintenance mode on
+  ansible.builtin.command: >-
+    k3s kubectl exec deployment/nextcloud --namespace nextcloud
+    --container nextcloud-fpm -- runuser -u www-data -- php /var/www/html/occ maintenance:mode --on
+  register: mariadb_upgrade_maint
+  changed_when: mariadb_upgrade_maint.rc == 0
+  failed_when: false   # no Nextcloud deployed yet: nothing to protect
+
+- name: MariaDB upgrade | Full dump before the upgrade (root only)
+  ansible.builtin.shell: |
+    set -eo pipefail
+    umask 077
+    mkdir -p /root/mariadb-series-upgrade
+    # --skip-ssl: an 11.x client requires TLS by default, the old 10.x server
+    # offers none; this is a local socket connection (found 2026-11-23).
+    mariadb-dump --skip-ssl --all-databases --single-transaction --routines --events \
+      --default-character-set=utf8mb4 \
+      | gzip > "/root/mariadb-series-upgrade/before-{{ nextcloud_mariadb_repo_version }}-$(date +%Y%m%d-%H%M).sql.gz"
+  changed_when: true
+
+- name: MariaDB upgrade | Stop MariaDB
+  ansible.builtin.service:
+    name: mariadb
+    state: stopped
+
+# The 11.x server package refuses to install over a 10.x server ("A manual
+# upgrade is required"): remove only the old server package (--nodeps, so
+# client, libraries and MariaDB-server-compat stay), data and our config stay.
+- name: MariaDB upgrade | Remove the old server package
+  ansible.builtin.command: rpm -e --nodeps MariaDB-server  # noqa: command-instead-of-module - dnf cannot remove without its dependents
+  changed_when: true
+
+- name: MariaDB upgrade | Install the server of the repository series  # noqa: package-latest - the newest of the new series is the point
+  ansible.builtin.dnf:
+    name: MariaDB-server
+    state: latest
+
+- name: MariaDB upgrade | Bring the other MariaDB packages to the same series
+  ansible.builtin.dnf:
+    name: ["MariaDB-*", "galera-4"]
+    state: latest
+    update_only: true
+
+- name: MariaDB upgrade | Start MariaDB with the new server
+  ansible.builtin.systemd:
+    name: mariadb
+    state: started
+    daemon_reload: true
+
+- name: MariaDB upgrade | Wait for the socket
+  ansible.builtin.wait_for:
+    path: /var/lib/mysql/mysql.sock
+    state: present
+    timeout: 60
+
+- name: MariaDB upgrade | mariadb-upgrade (system tables of the new series)
+  ansible.builtin.command: mariadb-upgrade
+  changed_when: true
+
+- name: MariaDB upgrade | Nextcloud maintenance mode off
+  ansible.builtin.command: >-
+    k3s kubectl exec deployment/nextcloud --namespace nextcloud
+    --container nextcloud-fpm -- runuser -u www-data -- php /var/www/html/occ maintenance:mode --off
+  when: mariadb_upgrade_maint.rc == 0
+  changed_when: true
+
+- name: MariaDB upgrade | Version and duration
+  ansible.builtin.command: mariadb -N -e "SELECT VERSION()"
+  register: mariadb_upgrade_version
+  changed_when: false
+
+- name: MariaDB upgrade | Report
+  ansible.builtin.debug:
+    msg: >-
+      MariaDB now {{ mariadb_upgrade_version.stdout }}, upgrade took
+      {{ (now(utc=true).timestamp() | int) - (mariadb_upgrade_start | int) }} s
+      (Nextcloud in maintenance mode for that time). Dump in /root/mariadb-series-upgrade/.

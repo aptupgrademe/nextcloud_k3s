@@ -36,7 +36,7 @@
 
 # EL10 moved the netfilter modules kube-proxy and flannel load (br_netfilter,
 # nft_compat, xt_comment, xt_conntrack, xt_mark, xt_MASQUERADE ...) out of
-# kernel-modules into kernel-modules-extra (found 2026-11-21 on the first EL10
+# kernel-modules-core into kernel-modules-extra (found 2026-11-21 on the first EL10
 # host). Without them K3s starts, but its iptables-nft rules fail ("Extension
 # comment revision 0 not supported, missing kernel module?"): no pod reaches
 # the API server ClusterIP, CoreDNS never gets ready, and the first Helm
