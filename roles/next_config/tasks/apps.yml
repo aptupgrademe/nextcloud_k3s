@@ -47,7 +47,12 @@
 
 - name: Apps | richdocuments - download tarball (bypasses occ's flaky extractor)
   ansible.builtin.get_url:
-    url: "{{ (nc_appstore_apps.json | selectattr('id', 'equalto', 'richdocuments') | first).releases[0].download }}"
+    # The newest STABLE release: the store does not sort its list strictly and
+    # marks betas (12.0.0-beta.2) as non-nightly - releases[0] could have been
+    # a beta (review R14, checked 2026-11-23). No nightlies, no "-" versions.
+    url: >-
+      {{ ((nc_appstore_apps.json | selectattr('id', 'equalto', 'richdocuments') | first).releases
+          | rejectattr('isNightly') | rejectattr('version', 'search', '-') | first).download }}
     dest: /tmp/richdocuments.tar.gz
     mode: "0644"
   when: "nc_app_list.stdout is not search('richdocuments: ')"
