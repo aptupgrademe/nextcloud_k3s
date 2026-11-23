@@ -155,11 +155,24 @@
 - name: Redis | Ensure Redis requires authentication
   ansible.builtin.lineinfile:
     path: "{{ nextcloud_kv_conf }}"
-    regexp: '^requirepass\s+'
+    regexp: '^(requirepass|user default)\s+'
     line: 'requirepass {{ nextcloud_redis_pass }}'
     backup: true
   no_log: true
   notify: Restart Redis
+  when: not (redis_acl_restrict | bool)
+
+# redis_acl_restrict (defaults/main.yml): the same password, but the default
+# user loses the commands Nextcloud never sends. Replaces the requirepass line.
+- name: Redis | Default user with password and without admin commands (ACL)
+  ansible.builtin.lineinfile:
+    path: "{{ nextcloud_kv_conf }}"
+    regexp: '^(requirepass|user default)\s+'
+    line: "user default on >{{ nextcloud_redis_pass }} ~* &* +@all {{ redis_acl_denied_commands | map('regex_replace', '^', '-') | join(' ') }}"
+    backup: true
+  no_log: true
+  notify: Restart Redis
+  when: redis_acl_restrict | bool
 
 # No snapshots (2026-10-20). This Redis holds only file locks with a TTL and
 # a cache Nextcloud rebuilds by itself; the package default (save 3600 1 300

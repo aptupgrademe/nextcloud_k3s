@@ -3,3 +3,33 @@
 # (nextcloud_ipv4 in host_vars/<host>/vars.yml).
 #
 # defaults/ = lowest-priority role variables (none needed here).
+
+# Valkey/Redis ACL instead of a bare requirepass (review finding 2026-11-23):
+# every pod in every namespace can reach port 6379 on the host (the firewall
+# allows the whole pod network), and requirepass alone allows every command
+# - CONFIG SET could make the server write files, FLUSHALL wipes all locks.
+# The default user keeps its password and all data commands Nextcloud and
+# notify_push use (incl. KEYS for cache clearing and EVAL for file locking)
+# but loses these. Nothing in this repo needs them (no redis-cli anywhere);
+# for maintenance edit the config file and restart. Test first.
+redis_acl_restrict: false
+redis_acl_denied_commands:
+  - config
+  - flushall
+  - flushdb
+  - debug
+  - shutdown
+  - module
+  - monitor
+  - save
+  - bgsave
+  - bgrewriteaof
+  - replicaof
+  - slaveof
+  - sync
+  - psync
+  - migrate
+  - restore
+  - failover
+  - acl
+
