@@ -175,8 +175,9 @@
 
 # A direct daemon_reload instead of a handler: the next task starts
 # MariaDB, and it must start WITH the drop-in on a fresh host.
-# The drop-in has to be live before the service starts, otherwise the first run
-# on a fresh host would start MariaDB unsandboxed and only restart it later.
+# The drop-in has to be live before the service (re)starts. On a fresh host
+# next_packages has already started MariaDB once with the package defaults
+# (localhost only); the Restart MariaDB handler then brings the sandbox in.
 - name: MariaDB | Reload systemd so the drop-in takes effect
   ansible.builtin.systemd:
     daemon_reload: true

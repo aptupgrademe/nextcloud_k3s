@@ -195,16 +195,18 @@
 # maintenance, not a finding - see the "unnecessary notifications" ask
 # that prompted this fix. Same rc-tolerant shape as common_aide_refresh
 # (aide --update's non-zero exit on finding+recording changes is normal,
-# not a failure - only the presence of aide.db.new.gz signals success).
+# not a failure). rc 1-7 = changes recorded; 14+ = AIDE error, 124 = killed
+# by timeout (EL10): then a half-written aide.db.new.gz must NOT become the
+# baseline - it is deleted instead, the missing heartbeat reports it (review R8).
 - name: CIS | Schedule nightly AIDE baseline refresh (after dnf-automatic's update window)
   ansible.builtin.cron:
     name: "AIDE baseline refresh after automatic updates"
     hour: "4"
     minute: "0"
     job: >-
-      {{ aide_timeout_prefix }}nice -n 10 /usr/sbin/aide --update --workers=$(nproc) >/dev/null 2>&1;
-      [ -f /var/lib/aide/aide.db.new.gz ] && mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
-      && /usr/local/sbin/heartbeat-mark aide_update 108000
+      {{ aide_timeout_prefix }}nice -n 10 /usr/sbin/aide --update --workers=$(nproc) >/dev/null 2>&1; rc=$?;
+      [ $rc -lt 8 ] && [ -f /var/lib/aide/aide.db.new.gz ] && mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+      && /usr/local/sbin/heartbeat-mark aide_update 108000; rm -f /var/lib/aide/aide.db.new.gz
     user: root
 
 # A hand-made /etc/cron.d/aide-check from August 2026 (not in any role, not
@@ -529,7 +531,8 @@
       - samba-common-libs
       - samba-client-libs
     state: absent
-    autoremove: true
+    # No autoremove: it removes every unneeded dependency of the WHOLE system on
+    # every run, not only those of these packages (review R10, 2026-11-23).
 
 # -----------------------------------------------------------------------------
 # Mount hardening: nodev/nosuid/noexec on /tmp, /var/tmp, /dev/shm

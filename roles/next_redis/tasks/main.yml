@@ -43,7 +43,8 @@
 
 # -----------------------------------------------------------------------------
 # systemd sandbox (2026-10-20) - live before the service starts, same pattern
-# as next_mariadb, so a fresh host never runs Redis unsandboxed
+# as next_mariadb. On a fresh host next_packages has already started Redis
+# once with the package defaults (127.0.0.1 only); the restart here replaces it.
 # -----------------------------------------------------------------------------
 # The SELinux module first: without it the drop-in below (NoNewPrivileges)
 # keeps redis-server out of redis_t and Redis does not start.
