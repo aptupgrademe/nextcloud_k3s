@@ -139,6 +139,31 @@
         --no-collect.slave_status
       Restart=on-failure
       RestartSec=5s
+      # Sandbox (review 2026-11-23: systemd-analyze security 9.2 UNSAFE,
+      # the only monitoring unit without any). Same set as redis_exporter:
+      # a network client that only reads its own config file.
+      NoNewPrivileges=yes
+      ProtectSystem=strict
+      ProtectHome=yes
+      PrivateTmp=yes
+      PrivateDevices=yes
+      ProtectKernelTunables=yes
+      ProtectKernelModules=yes
+      ProtectKernelLogs=yes
+      ProtectControlGroups=yes
+      ProtectClock=yes
+      ProtectHostname=yes
+      RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+      RestrictNamespaces=yes
+      RestrictRealtime=yes
+      RestrictSUIDSGID=yes
+      LockPersonality=yes
+      MemoryDenyWriteExecute=yes
+      SystemCallArchitectures=native
+      SystemCallFilter=@system-service
+      CapabilityBoundingSet=
+      IPAddressDeny=any
+      IPAddressAllow=localhost
 
       [Install]
       WantedBy=multi-user.target
