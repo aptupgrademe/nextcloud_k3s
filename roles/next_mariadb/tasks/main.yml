@@ -469,7 +469,7 @@
     # BINLOG MONITOR is what MariaDB >= 10.5 calls REPLICATION CLIENT and what
     # SHOW GRANTS returns - with the old name the module saw a difference and
     # re-granted (reported "changed") on every run.
-    priv: "*.*:PROCESS,BINLOG MONITOR,SELECT"
+    priv: "{{ mariadb_exporter_priv }}"
     state: present
     column_case_sensitive: false
     login_unix_socket: "{{ mariadb_socket }}"

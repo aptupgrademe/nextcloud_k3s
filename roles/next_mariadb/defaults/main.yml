@@ -10,3 +10,11 @@
 # InnoDB buffer pool – set to ~25% of total RAM.
 # On a 4 GB server: 1024M, on 2 GB: 512M, on 1 GB: 256M.
 mariadb_innodb_buffer_pool_size: "256M"
+
+# Grants of the mysqld_exporter user. SELECT on *.* let it read every table
+# (password hashes, Nextcloud app tokens); the enabled collectors (global
+# status/variables, info_schema.innodb_cmp*, query_response_time) need only
+# PROCESS, and slave_status is switched off (no replication, BINLOG MONITOR
+# unused). Review finding 2026-11-23 - test first with "*.*:PROCESS" in
+# host_vars, the default follows once it has proven itself.
+mariadb_exporter_priv: "*.*:PROCESS,BINLOG MONITOR,SELECT"
