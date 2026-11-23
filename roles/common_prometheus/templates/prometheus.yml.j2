@@ -39,7 +39,7 @@ scrape_configs:
   # kube-state-metrics via NodePort {{ kube_state_metrics_nodeport }}: limits, restarts, termination reasons.
   - job_name: "kube_state_metrics"
     static_configs:
-      - targets: ["127.0.0.1:{{ kube_state_metrics_nodeport }}"]
+      - targets: ["{{ k3s_nodeport_scrape_ip }}:{{ kube_state_metrics_nodeport }}"]
         labels:
           instance: "{{ inventory_hostname }}"
 
@@ -56,6 +56,6 @@ scrape_configs:
   # PHP-FPM – K3s pod (Nextcloud) via NodePort 30254 → php-fpm_exporter sidecar
   - job_name: "php_fpm_nextcloud"
     static_configs:
-      - targets: ["127.0.0.1:30254"]
+      - targets: ["{{ k3s_nodeport_scrape_ip }}:30254"]
         labels:
           instance: "nextcloud"

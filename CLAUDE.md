@@ -112,6 +112,11 @@ and in the README. This file only points the way and lists the traps.
 - **NodePorts are reachable on every local address**; the drop chain runs at
   priority −150 (after conntrack) and drops only `ct state new` – at `raw`
   priority it also dropped replies to outgoing pod connections.
+- **kube-proxy in nftables mode has no NodePorts on 127.0.0.1** (by design upstream).
+  An existing keep-alive connection kept working through conntrack, so Prometheus showed the
+  target "up" while every new connection was refused (found 2026-11-23, experiment
+  `k3s_kube_proxy_nftables` on test). Scrape via `k3s_nodeport_scrape_ip`. Flannel and the policy
+  controller still load nft_compat/ip_set, so the EL10 "unmaintained" warnings stay either way.
 - **Pod network namespaces copy the host's `all`/`default` sysctls** (e.g.
   `log_martians`) – set per interface where only the host is meant.
 - MLD packets sit behind a hop-by-hop header, so `nexthdr ipv6-icmp` never

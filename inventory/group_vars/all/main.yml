@@ -31,6 +31,20 @@ k3s_pod_cidr: "10.42.0.0/16"
 # add it to wopi_allowed_hosts in host_vars so Nextcloud accepts WOPI callbacks.
 k3s_service_cidr: "10.43.0.0/16"
 
+# kube-proxy in nftables mode instead of iptables (GA since Kubernetes 1.33;
+# used in common_k3s config.yaml and common_prometheus). On AlmaLinux 10
+# nft_compat, ip_tables and ip_set (what iptables-nft needs) are marked
+# "unmaintained"; native nftables needs none of them for services. Flannel
+# and K3s's network policy controller keep using iptables-nft either way.
+# nftables mode serves NodePorts only on the node's IPs, NOT on 127.0.0.1
+# (by design upstream; found 2026-11-23: Prometheus kept scraping
+# 127.0.0.1:30254 only over an old keep-alive connection, new connections
+# were refused) - k3s_nodeport_scrape_ip switches the scrape address.
+# Experiment on the test host first (2026-11-23, host_vars), production
+# stays on iptables until it has proven itself.
+k3s_kube_proxy_nftables: false
+k3s_nodeport_scrape_ip: "{{ server_ipv4 if (k3s_kube_proxy_nftables | bool) else '127.0.0.1' }}"
+
 # HostPath directory for Nextcloud application files (PHP, apps, config, themes).
 nextcloud_k3s_www_dir: /srv/nextcloud-www
 

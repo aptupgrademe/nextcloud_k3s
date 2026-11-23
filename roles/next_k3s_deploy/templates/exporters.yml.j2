@@ -1,6 +1,7 @@
 # Exporter NodePort Service – managed by Ansible (next_k3s_deploy)
 # Exposes php-fpm_exporter (nextcloud pod) to host-side Prometheus via NodePort.
-# Prometheus scrapes 127.0.0.1:30254 on the host.
+# Prometheus scrapes 127.0.0.1:30254 on the host (the host IP with
+# k3s_kube_proxy_nftables: nftables mode has no NodePorts on 127.0.0.1).
 # (mysqld_exporter for Nextcloud MariaDB runs as a host service on port 9104.)
 ---
 apiVersion: v1

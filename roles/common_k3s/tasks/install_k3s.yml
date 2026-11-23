@@ -263,7 +263,10 @@
       # CIS 4.2.13: bound PIDs per pod so a fork-bomb in one compromised
       # container can't exhaust the node's whole PID space.
       kubelet-arg:
-        - "pod-max-pids=4096"
+        - "pod-max-pids=4096"{% if k3s_kube_proxy_nftables | bool +%}
+      # kube-proxy with native nftables (k3s_kube_proxy_nftables, group_vars/all/main.yml).
+      kube-proxy-arg:
+        - "proxy-mode=nftables"{% endif +%}
   notify: Restart k3s service
 
 # apiserver does not create --audit-log-path's parent directory itself - it
