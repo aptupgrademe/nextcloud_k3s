@@ -288,6 +288,17 @@
               "Ein node_exporter-Collector schlägt fehl (journalctl -u node_exporter) – seine Messwerte fehlen, Alarme darauf bleiben stumm.",
               "node_collector_ok",
           ),
+          # MariaDB down (review 2026-11-23: no rule and no Monit check had it).
+          # "or vector(0)": without the exporter mysql_up is absent, which
+          # would read as "no data" = OK - so a dead exporter fires too.
+          make_rule(
+              "alert-mariadb-down",
+              "MariaDB nicht erreichbar",
+              "min(mysql_up) or vector(0)",
+              1, "lt",
+              "MariaDB antwortet dem mysqld_exporter nicht (oder der Exporter läuft nicht) – Nextcloud ist dann nicht nutzbar. systemctl status mariadb mysqld_exporter",
+              "mariadb_up",
+          ),
           # Container rules (common_kube_metrics). max() turns the per-
           # container series into one value; the dashboard
           # "Container-Ressourcen" shows which container it was.
