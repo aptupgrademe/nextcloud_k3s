@@ -128,7 +128,14 @@ data:
         # PHP-FPM  (FPM listens on TCP 9000 in the same pod)
         # -------------------------------------------------------
         location ~ \.php(?:$|/) {
+            # Only Nextcloud's entry points run as PHP; any other .php path
+            # (e.g. /apps/dav/appinfo/v1/webdav.php answered 200) goes to the
+            # router, which knows no such route. Same list as Nextcloud's own
+            # nginx example, minus the web updater (updates come with the
+            # image). Review finding H4, 2026-11-23.
+            rewrite ^/(?!index|remote|public|cron|core\/ajax\/update|status|ocs\/v[12]|ocs-provider\/.+|.+\/richdocumentscode(_arm64)?\/proxy) /index.php$request_uri;
             include        fastcgi_params;
+            fastcgi_param  HTTP_PROXY       "";   # httpoxy: never take a proxy from a request header
             fastcgi_split_path_info ^(.+?\.php)(/.*)$;
             fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
             fastcgi_param  PATH_INFO        $fastcgi_path_info;
