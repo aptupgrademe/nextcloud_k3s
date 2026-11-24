@@ -15,6 +15,6 @@ mariadb_innodb_buffer_pool_size: "256M"
 # (password hashes, Nextcloud app tokens); the enabled collectors (global
 # status/variables, info_schema.innodb_cmp*, query_response_time) need only
 # PROCESS, and slave_status is switched off (no replication, BINLOG MONITOR
-# unused). Review finding 2026-11-23 - test first with "*.*:PROCESS" in
-# host_vars, the default follows once it has proven itself.
-mariadb_exporter_priv: "*.*:PROCESS,BINLOG MONITOR,SELECT"
+# unused). Review finding 2026-11-23, tested on test for a night, default for
+# all hosts since 2026-11-24.
+mariadb_exporter_priv: "*.*:PROCESS"

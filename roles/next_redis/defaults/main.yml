@@ -11,8 +11,9 @@
 # The default user keeps its password and all data commands Nextcloud and
 # notify_push use (incl. KEYS for cache clearing and EVAL for file locking)
 # but loses these. Nothing in this repo needs them (no redis-cli anywhere);
-# for maintenance edit the config file and restart. Test first.
-redis_acl_restrict: false
+# for maintenance edit the config file and restart. Tested on test from
+# 2026-11-23, default since 2026-11-24.
+redis_acl_restrict: true
 redis_acl_denied_commands:
   - config
   - flushall

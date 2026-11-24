@@ -48,12 +48,14 @@ k3s_kube_proxy_nftables: false
 # (review finding 2026-11-23): MariaDB and Valkey/Redis accept connections
 # only from localhost and the pod network, via systemd IPAddressDeny/Allow
 # (BPF in the service's cgroup, independent of the firewall). Unix sockets
-# (backups, Ansible, the exporter) are not affected. Test first.
-host_db_ip_restrict: false
+# (backups, Ansible, the exporter) are not affected. Tested on test from
+# 2026-11-23, on for all hosts since 2026-11-24.
+host_db_ip_restrict: true
 
 # NetworkPolicy "default-deny-all" in the namespace default (next_k3s_deploy,
-# networkpolicy.yml.j2): pods there get no network at all. Test first.
-k8s_default_ns_deny: false
+# networkpolicy.yml.j2): pods there get no network at all. Tested on test
+# from 2026-11-23, on for all hosts since 2026-11-24.
+k8s_default_ns_deny: true
 k3s_nodeport_scrape_ip: "{{ server_ipv4 if (k3s_kube_proxy_nftables | bool) else '127.0.0.1' }}"
 
 # HostPath directory for Nextcloud application files (PHP, apps, config, themes).

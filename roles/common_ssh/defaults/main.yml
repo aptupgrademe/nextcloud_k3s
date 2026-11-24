@@ -16,8 +16,8 @@ ssh_disable_gssapi: true
 # aes-ctr, non-ETM MACs and NIST curves). 00-* sorts first, so these win.
 # Post-quantum key exchange first (OpenSSH 9.9 on EL9, 10 on Debian 13),
 # curve25519 stays as the fallback for older clients.
-# Test first (host_vars), the default flips once it has proven itself.
-ssh_pin_crypto: false
+# Tested on test from 2026-11-23, default for all hosts since 2026-11-24.
+ssh_pin_crypto: true
 ssh_kex_algorithms:
   - mlkem768x25519-sha256
   - sntrup761x25519-sha512@openssh.com
