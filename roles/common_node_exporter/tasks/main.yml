@@ -110,10 +110,17 @@
       # eth0 (the server's actual in/out) instead of dozens of veth* churn.
       # '\\.' because systemd unescapes ExecStart: a bare '\.' still reached the
       # exporter but logged "Ignoring unknown escape sequences" on every reload.
+      # filesystem.mount-points-exclude = the upstream default plus the pod
+      # volumes of K3s (/var/lib/kubelet/pods/..., /run/k3s/...): per-pod tmpfs
+      # with no value as metrics. SELinux denies node_exporter the search on
+      # /var/lib/kubelet (container_var_lib_t) anyway - after the sandbox drop-in
+      # (2026-11-23) that showed up as ~100 AVCs per minute on test and rotated
+      # audit.log every 70 min (found 2026-11-24). '$$' = a literal '$' for systemd.
       ExecStart=/usr/local/bin/node_exporter \
         --web.listen-address=127.0.0.1:9100 \
         --collector.textfile.directory=/var/lib/node_exporter/textfile \
         --no-collector.nfs --no-collector.nfsd \
+        --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run/credentials/.+|run/k3s/.+|var/lib/kubelet/.+|var/lib/docker/.+|var/lib/containers/storage/.+)($$|/) \
         --collector.netdev.device-exclude=^(veth.*|cni[0-9]+|flannel\\.[0-9]+|docker[0-9]+|br-.*|kube-ipvs.*|dummy.*|lo|nodelocaldns)$
       Restart=on-failure
       RestartSec=5s

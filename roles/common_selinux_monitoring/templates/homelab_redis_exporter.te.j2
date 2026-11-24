@@ -1,6 +1,6 @@
 # Managed by Ansible (common_selinux_monitoring) - local SELinux module.
 # Gives redis_exporter (common_redis_exporter, since 2026-11-23) its own domain.
-policy_module(homelab_redis_exporter, 1.0.0)
+policy_module(homelab_redis_exporter, 1.0.1)
 
 type homelab_redis_exporter_t;
 type homelab_redis_exporter_exec_t;
@@ -21,6 +21,9 @@ kernel_search_network_sysctl(homelab_redis_exporter_t)
 fs_search_cgroup_dirs(homelab_redis_exporter_t)
 fs_read_cgroup_files(homelab_redis_exporter_t)
 dev_read_sysfs(homelab_redis_exporter_t)
+# Go loads the system CA bundle (/etc/pki/tls/certs, cert_t) at start - seen
+# in the learning phase on test 2026-11-24 after a restart (7 AVCs, nothing else).
+miscfiles_read_generic_certs(homelab_redis_exporter_t)
 
 {% if selinux_monitoring_permissive | bool or selinux_redis_exporter_permissive | bool %}
 # Learning phase: log denials, do not enforce (CLAUDE.md: own domains go
