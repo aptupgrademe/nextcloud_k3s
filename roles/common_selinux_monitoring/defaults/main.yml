@@ -22,8 +22,10 @@ selinux_monitoring_permissive: false
 selinux_monitoring_modules: [prometheus, node_exporter, grafana, mysqld_exporter, redis_exporter]
 
 # Learning phase only for the newest domain: permissive until its AVCs have
-# been reviewed (at least one night incl. a restart), then false.
-selinux_redis_exporter_permissive: true
+# been reviewed (at least one night incl. a restart), then false. redis_exporter:
+# reviewed 2026-11-25 (only the CA bundle read, allowed since module 1.0.1),
+# enforcing on test since 2026-11-25, on all hosts since the same day.
+selinux_redis_exporter_permissive: false
 
 # Service unit per module (restarted once its executable got the new label,
 # so the running process enters the domain).
