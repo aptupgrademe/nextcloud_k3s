@@ -154,6 +154,8 @@ Internet
   store, push servers, federation and external storages cannot be listed
   without FQDN rules) and `notify-push-netpol` (both directions: ingress
   controller in; DNS and the host's MariaDB/Redis/443 out).
+- Since 2026-11-24 `default-deny-all` in the namespace `default`
+  (`k8s_default_ns_deny`): a pod started there by mistake has no network at all.
 
 #### Intrusion Detection – Fail2Ban
 
@@ -204,7 +206,21 @@ issuance succeeds.
   The night runs in a fixed order: AIDE check 00:00, updates 01:00-02:00,
   reboot if needed 03:30, AIDE baseline refresh 04:00, ClamAV data scan 04:30 - so an update never triggers a false AIDE alert and a
   reboot never cuts a scan short
-- **systemd hardening** drop-ins for sshd, node_exporter, prometheus
+- **systemd hardening** drop-ins for sshd, node_exporter, prometheus; since
+  2026-11-24 syscall filters / no W+X memory / no namespaces for node_exporter,
+  Prometheus, Loki and Alloy, sandboxed units for both DB exporters
+- **Host databases** (since 2026-11-24): MariaDB and Valkey/Redis accept
+  connections only from localhost and the pod network (systemd IP allow list,
+  `host_db_ip_restrict`, a second layer next to nftables); the Valkey/Redis user
+  has no admin commands (ACL, `redis_acl_restrict`); the mysqld_exporter only
+  holds `PROCESS` (`mariadb_exporter_priv`)
+- **SSH** algorithms pinned (post-quantum key exchange first, AEAD ciphers, ETM
+  MACs – `ssh_pin_crypto`), GSSAPI off; every new sshd config is validated with
+  `sshd -t` before it replaces the old one
+- **nginx sidecar** runs only Nextcloud's PHP entry points; the admin password is
+  no longer mounted into the pod once Nextcloud is installed
+- Details, how to check each measure and what to watch in operation: section
+  "Härtung November 2026" in `docs/nextcloud-betrieb.html` (EN/FR likewise)
 - **CIS AlmaLinux 9 Benchmark** hardening (AIDE file integrity, kernel module
   blacklist, cron/sudo permissions, `nodev,nosuid,noexec` mount options)
 - **Monit watchdog** with email alerts on resource, service, firewall and K3s

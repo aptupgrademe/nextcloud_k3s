@@ -1349,7 +1349,7 @@ k3s kubectl logs -n nextcloud deployment/nextcloud -c nextcloud-fpm -f | grep -i
 
 <h3>Grafana Alerting</h3>
 <p>
-  Grafana is set up with 17 pre-configured alert rules (plus the log alerts from <code>common_loki</code>) and an email contact point
+  Grafana is set up with 19 pre-configured alert rules (plus the log alerts from <code>common_loki</code>) and an email contact point
   (configured by <code>common_grafana</code>, SMTP credentials from <code>common_msmtp</code>):
 </p>
 <table>
@@ -1359,6 +1359,8 @@ k3s kubectl logs -n nextcloud deployment/nextcloud -c nextcloud-fpm -f | grep -i
   <tr><td>Arbeitsspeicher &gt; 90 %</td><td>90 %</td><td>Host RAM usage</td></tr>
   <tr><td>CPU-Last &gt; 85 %</td><td>85 %</td><td>CPU usage (5-minute average)</td></tr>
   <tr><td>Node Exporter nicht erreichbar</td><td>–</td><td>Node Exporter is not responding</td></tr>
+  <tr><td>MariaDB nicht erreichbar</td><td>–</td><td><code>mysql_up</code> is 0 or missing: the database does not answer – or the mysqld_exporter itself is down; both need a look (since 2026-11-23)</td></tr>
+  <tr><td>Valkey/Redis nicht erreichbar</td><td>–</td><td><code>redis_up</code> is 0 or missing (redis_exporter, since 2026-11-24). Without Valkey/Redis there is no file locking and no PHP sessions</td></tr>
   <tr><td>node_exporter-Collector fehlgeschlagen</td><td>–</td><td>a collector delivers no metrics (rules on them would stay silent, since 2026-10-22)</td></tr>
   <tr><td>Container-Speicher &gt; 90 % vom Limit</td><td>90 %</td><td>a container close to its memory limit (OOM kill ahead)</td></tr>
   <tr><td>Container-CPU gedrosselt &gt; 50 %</td><td>50 %</td><td>a container throttled in more than half of its periods</td></tr>
@@ -1400,6 +1402,22 @@ journalctl -u mysqld_exporter -n 50
 # Fetch metrics directly (test)
 curl -s http://127.0.0.1:9104/metrics | grep mysql_up</code></pre>
 
+
+<h3>redis_exporter – Check Status</h3>
+<p>
+  Since 2026-11-24 <code>redis_exporter</code> (role <code>common_redis_exporter</code>) monitors Valkey/Redis on the host:
+  memory, connections, commands per second and whether the service answers at all. It listens on
+  <code>127.0.0.1:9121</code> only; systemd reads the password from a file only root can read (not visible on the
+  command line). Prometheus scrapes it as job <code>redis_nextcloud</code>.
+</p>
+<pre><code>systemctl status redis_exporter
+curl -s http://127.0.0.1:9121/metrics | grep -E '^redis_up|^redis_connected_clients'
+ps -eZ | grep redis_exporter      # domain homelab_redis_exporter_t</code></pre>
+<p>
+  Since 2026-11-24 the mysqld_exporter only has the <code>PROCESS</code> privilege in MariaDB
+  (<code>mariadb_exporter_priv</code>). Before, <code>SELECT</code> let it read every table, including password hashes
+  and app tokens; the enabled collectors do not need that.
+</p>
 
 <h3>Log Rotation (MariaDB on the host)</h3>
 <p>
@@ -2084,7 +2102,7 @@ Both verified 2026-09-14.</p>
   </tr>
   <tr>
     <td>SSH</td>
-    <td>Port 10022, key-only (<code>PermitRootLogin without-password</code>), hardened sshd_config, Fail2Ban, <code>sshd_config.d/00-hardening.conf</code> pins key-only ahead of provider drop-ins (the provider drop-in <code>50-cloud-init.conf</code> otherwise re-enabled passwords, found 2026-09-30). It also pins <code>X11Forwarding no</code>, which AlmaLinux’s <code>50-redhat.conf</code> otherwise set to <code>yes</code> (found 2026-10-02). Optional country filter for port 10022 (<code>fw_ssh_geo_countries</code>, e.g. <code>[DE]</code>; enabled on the blog and on cvjm since 2026-10-02, not on sofie; see the WordPress operations doc)</td>
+    <td>Port 10022, key-only (<code>PermitRootLogin without-password</code>), hardened sshd_config, Fail2Ban, <code>sshd_config.d/00-hardening.conf</code> pins key-only ahead of provider drop-ins (the provider drop-in <code>50-cloud-init.conf</code> otherwise re-enabled passwords, found 2026-09-30). It also pins <code>X11Forwarding no</code>, which AlmaLinux’s <code>50-redhat.conf</code> otherwise set to <code>yes</code> (found 2026-10-02). Optional country filter for port 10022 (<code>fw_ssh_geo_countries</code>, e.g. <code>[DE]</code>; enabled on the blog and on cvjm since 2026-10-02, not on sofie; see the WordPress operations doc). Since 2026-11-24 <code>00-hardening.conf</code> also pins the algorithms (<code>ssh_pin_crypto</code>): key exchange post-quantum first (<code>mlkem768x25519-sha256</code>, <code>sntrup761x25519</code>), then curve25519; only AEAD ciphers (ChaCha20-Poly1305, AES-GCM) and ETM MACs. GSSAPI is off since 2026-11-23. <code>sshd -t</code> validates every new configuration before it replaces the old one.</td>
     <td><code>common_ssh</code>, <code>common_fail2ban</code>, <code>common_firewall</code></td>
   </tr>
   <tr>
@@ -2116,12 +2134,12 @@ Both verified 2026-09-14.</p>
   </tr>
   <tr>
     <td>Database</td>
-    <td>User restricted to pod CIDR (<code>10.42.%</code>), MariaDB bind 0.0.0.0 + nftables</td>
+    <td>User restricted to pod CIDR (<code>10.42.%</code>), MariaDB bind 0.0.0.0 + nftables. Second layer since 2026-11-24 (<code>host_db_ip_restrict</code>): systemd only lets localhost and the pod network through (<code>IPAddressDeny=any</code>/<code>IPAddressAllow</code>, drop-in <code>99-zz-ip-allow.conf</code>), even if the firewall were ever open; the Unix socket (backups, Ansible, exporter) is not affected.</td>
     <td><code>next_mariadb</code>, <code>common_firewall</code></td>
   </tr>
   <tr>
     <td>Redis</td>
-    <td>Bind to localhost + host IP, nftables on pod CIDR</td>
+    <td>Bind to localhost + host IP, nftables on pod CIDR. Since 2026-11-24 the same systemd IP list as MariaDB and an ACL (<code>redis_acl_restrict</code>): the user keeps its password and every data command Nextcloud and notify_push need, but no admin commands any more (<code>CONFIG</code>, <code>FLUSHALL</code>, <code>FLUSHDB</code>, <code>DEBUG</code>, <code>SHUTDOWN</code>, <code>MODULE</code>, <code>MONITOR</code>, <code>SAVE</code>/<code>BGSAVE</code>, <code>BGREWRITEAOF</code>, <code>REPLICAOF</code>). Before, any pod with the password could e.g. write files via <code>CONFIG SET</code> or wipe all file locks via <code>FLUSHALL</code>.</td>
     <td><code>next_redis</code>, <code>common_firewall</code></td>
   </tr>
   <tr>
@@ -2156,7 +2174,7 @@ Both verified 2026-09-14.</p>
   </tr>
   <tr>
     <td>Logs</td>
-    <td>Loki + Grafana Alloy: systemd journal, all pod logs, <code>audit.log</code> and <code>fail2ban.log</code>, 14 days, 127.0.0.1 only; searchable in Grafana (Explore, datasource Loki). Log alerts: blocked SELinux access (AVC, permissive=0), fail2ban errors, kernel OOM killer, no logs arriving. On all three servers since 2026-10-20 (blog since 2026-10-19).</td>
+    <td>Loki + Grafana Alloy: systemd journal, all pod logs, <code>audit.log</code>, <code>fail2ban.log</code> and since 2026-11-24 <code>nextcloud.log</code> (label <code>job="nextcloud"</code> with <code>level</code>), 14 days, 127.0.0.1 only; searchable in Grafana (Explore, datasource Loki). Log alerts: blocked SELinux access (AVC, permissive=0), fail2ban errors, kernel OOM killer, no logs arriving. On all three servers since 2026-10-20 (blog since 2026-10-19).</td>
     <td><code>common_loki</code></td>
   </tr>
   <tr>
@@ -2171,7 +2189,7 @@ Both verified 2026-09-14.</p>
   </tr>
   <tr>
     <td>systemd hardening</td>
-    <td>Drop-in overrides for sshd (7.8), node_exporter (4.4), prometheus (4.4); rpcbind/gssproxy/sssd disabled (port 111 closed)</td>
+    <td>Drop-in overrides for sshd (7.8), node_exporter (4.4), prometheus (4.4); rpcbind/gssproxy/sssd disabled (port 111 closed). Since 2026-11-24 also: syscall filter (<code>SystemCallFilter=@system-service</code>), no writable executable memory (<code>MemoryDenyWriteExecute</code>) and no namespaces for node_exporter, Prometheus, Loki and Alloy; Alloy cannot read the host's secrets (<code>InaccessiblePaths</code>); mysqld_exporter and redis_exporter have sandboxed units of their own (<code>systemd-analyze security</code> for mysqld_exporter 9.2 → 1.5).</td>
     <td><code>common_ssh</code>, <code>common_node_exporter</code>, <code>common_prometheus</code>, <code>next_packages</code></td>
   </tr>
   <tr>
@@ -2184,8 +2202,23 @@ Both verified 2026-09-14.</p>
     <td>Ansible Vault, K8s secrets (Opaque), no_log on sensitive tasks;
         MYSQL_PASSWORD/NEXTCLOUD_ADMIN_PASSWORD/SMTP_PASSWORD now delivered
         as mounted files (<code>_FILE</code> convention) instead of plain
-        env vars – same pattern as the blog, mirrored here 2026-08-20</td>
+        env vars – same pattern as the blog, mirrored here 2026-08-20.
+        Since 2026-11-24 the pod gets the admin password only until installation: once <code>config.php</code> says
+        installed, it is no longer mounted (before, www-data could read it for the pod's whole life).
+        Passwords no longer appear on command lines (<code>ps</code> does not show them; Ansible passes them via
+        <code>MYSQL_PWD</code>/<code>REDISCLI_AUTH</code>). Downloads (k3s, Helm, Prometheus, exporters) are checked
+        against the release's sha256 list.</td>
     <td>all roles</td>
+  </tr>
+  <tr>
+    <td>Pod network (namespace <code>default</code>)</td>
+    <td>Since 2026-11-24 NetworkPolicy <code>default-deny-all</code> (<code>k8s_default_ns_deny</code>): pods in the namespace <code>default</code> get neither incoming nor outgoing network. Nothing of ours runs there; a pod started there by mistake cannot reach MariaDB/Valkey. Use a namespace of your own for tests.</td>
+    <td><code>next_k3s_deploy</code></td>
+  </tr>
+  <tr>
+    <td>nginx sidecar: only Nextcloud's PHP entry points</td>
+    <td>Since 2026-11-24 nginx only runs the PHP files Nextcloud intends as entry points (<code>index</code>, <code>remote</code>, <code>public</code>, <code>cron</code>, <code>status</code>, <code>ocs/v1|v2</code>, <code>ocs-provider</code>, Collabora proxy); any other <code>.php</code> path goes to the router (before, e.g. <code>/apps/dav/appinfo/v1/webdav.php</code> answered directly). A request header <code>Proxy</code> is cleared (httpoxy).</td>
+    <td><code>next_k3s_deploy</code> (nginx ConfigMap)</td>
   </tr>
   <tr>
     <td>Image allowlist</td>
@@ -2198,6 +2231,66 @@ Both verified 2026-09-14.</p>
     <td><code>automountServiceAccountToken: false</code> on nextcloud/collabora/cron
         pod templates + the namespace's default SA</td>
     <td><code>next_k3s_deploy</code></td>
+  </tr>
+</table>
+
+<h3>Hardening November 2026: what changed and what to watch in operation</h3>
+<p>
+  After a review (2026-11-23) these measures ran for a night on the test server first and reached sofie and cvjm on
+  2026-11-24. Each has a switch in the role defaults or <code>group_vars</code>; to roll one back, set its switch to
+  <code>false</code> and run the role.
+</p>
+<table>
+  <tr><th>Measure (switch)</th><th>How to check that it works</th><th>What to watch</th></tr>
+  <tr>
+    <td>Valkey/Redis ACL<br>(<code>redis_acl_restrict</code>)</td>
+    <td><code>REDISCLI_AUTH=… redis-cli CONFIG GET maxmemory</code> → <code>NOPERM</code>; <code>occ notify_push:self-test</code> must be all green</td>
+    <td>Admin commands no longer work through <code>redis-cli</code>: change settings in the configuration file and restart the service. <strong>Every restart of Valkey/Redis logs out all browser sessions</strong> (the PHP sessions live in memory only) – restart in the evening if possible.</td>
+  </tr>
+  <tr>
+    <td>IP list for MariaDB and Valkey/Redis<br>(<code>host_db_ip_restrict</code>)</td>
+    <td><code>systemctl show mariadb -p IPAddressAllow</code> (or <code>redis</code>) shows localhost and the pod network</td>
+    <td>If you change the pod network (<code>k3s_pod_cidr</code>), run <code>next_mariadb</code>/<code>next_redis</code> again; connections from other addresses end in a timeout, not in an error message from the database.</td>
+  </tr>
+  <tr>
+    <td>NetworkPolicy deny-all in the namespace <code>default</code><br>(<code>k8s_default_ns_deny</code>)</td>
+    <td><code>kubectl -n default get networkpolicy</code> shows <code>default-deny-all</code></td>
+    <td>Start test pods (e.g. <code>kubectl run … --rm -it</code>) in a namespace of their own, otherwise they have no network. K3s's policy controller catches new pods only after a few seconds.</td>
+  </tr>
+  <tr>
+    <td>SSH algorithms pinned<br>(<code>ssh_pin_crypto</code>), GSSAPI off</td>
+    <td><code>sshd -T | grep -E '^(kexalgorithms|ciphers|macs)'</code></td>
+    <td>Every current client (OpenSSH, PuTTY, WinSCP, Ansible) supports curve25519 and AES-GCM; only very old clients fail. <code>sshd -t</code> validates new configurations before they replace the old one.</td>
+  </tr>
+  <tr>
+    <td>mysqld_exporter only with <code>PROCESS</code><br>(<code>mariadb_exporter_priv</code>)</td>
+    <td><code>SHOW GRANTS FOR 'prometheus'@'127.0.0.1'</code>; the MariaDB panels in Grafana must still show values</td>
+    <td>If you enable another collector, check which privileges it needs.</td>
+  </tr>
+  <tr>
+    <td>nginx: PHP entry points only</td>
+    <td><code>curl -s -o /dev/null -w '%{http_code}' https://&lt;host&gt;/apps/dav/appinfo/v1/webdav.php</code> → no direct PHP call any more</td>
+    <td>An app that has its own <code>.php</code> file called directly would need an entry in the list (<code>nginx-cm.yml.j2</code>); the list follows Nextcloud's own nginx example.</td>
+  </tr>
+  <tr>
+    <td>Admin password no longer in the pod</td>
+    <td><code>kubectl -n nextcloud exec deploy/nextcloud -c nextcloud-fpm -- ls /etc/secrets</code> shows no admin password</td>
+    <td>Admin password forgotten: <code>occ user:resetpassword &lt;admin&gt;</code>. On a fresh installation the pod gets it again automatically.</td>
+  </tr>
+  <tr>
+    <td>redis_exporter with its own SELinux domain</td>
+    <td><code>ps -eZ | grep redis_exporter</code> → <code>homelab_redis_exporter_t</code>; <code>redis_up 1</code></td>
+    <td>Learning phase (permissive) until 2026-11-25, then enforcing (<code>selinux_redis_exporter_permissive: false</code>). If it lacks a permission, the Loki alert (AVC) reports it.</td>
+  </tr>
+  <tr>
+    <td>node_exporter without pod volumes</td>
+    <td><code>node_scrape_collector_success{collector="filesystem"}</code> = 1</td>
+    <td>The pods' tmpfs mounts (<code>/var/lib/kubelet/…</code>, <code>/run/k3s/…</code>) are excluded from the filesystem metrics. Before, node_exporter tried to read them on every scrape; SELinux denied that ~100 times a minute and the audit log rotated every 70 minutes (found 2026-11-24 on the test server).</td>
+  </tr>
+  <tr>
+    <td>Sandbox for node_exporter, Prometheus, Loki, Alloy</td>
+    <td><code>systemctl show node_exporter -p SystemCallFilter</code>; services active, <code>ps -eZ</code> shows the right domain</td>
+    <td>Syscall filters and similar options switch <em>NoNewPrivileges</em> on as well – after every unit change check with <code>ps -eZ</code> that the service still runs in its SELinux domain (see CLAUDE.md, "NoNewPrivileges").</td>
   </tr>
 </table>
 

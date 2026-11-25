@@ -484,7 +484,7 @@ Profil:</p>
   <tr><td><code>common_k3s</code></td><td>beide</td><td>K3s, Helm, cert-manager, F5 nginx-ingress, ServiceAccount-Härtung</td></tr>
   <tr><td><code>common_kube_metrics</code></td><td>beide</td><td>Container-Metriken: cAdvisor (im Kubelet) und kube-state-metrics für Prometheus</td></tr>
   <tr><td><code>blog_k3s_deploy</code> / <code>next_k3s_deploy</code></td><td>je</td><td>Kubernetes-Objekte der Anwendung (Deployments, Secrets, Ingress, CronJobs, Policies)</td></tr>
-  <tr><td><code>common_node_exporter</code>, <code>common_prometheus</code>, <code>common_grafana</code>, <code>common_mysqld_exporter</code></td><td>beide / Nextcloud</td><td>Monitoring, nur lokal erreichbar, Grafana per Ingress</td></tr>
+  <tr><td><code>common_node_exporter</code>, <code>common_prometheus</code>, <code>common_grafana</code>, <code>common_mysqld_exporter</code>, <code>common_redis_exporter</code></td><td>beide / Nextcloud</td><td>Monitoring, nur lokal erreichbar, Grafana per Ingress</td></tr>
   <tr><td><code>common_fail2ban</code>, <code>common_monit</code>, <code>common_auditd</code>, <code>common_rkhunter</code>, <code>common_clamav</code></td><td>beide</td><td>Schutz, Wachhund, Audit, Rootkit- und Virenscan</td></tr>
   <tr><td><code>common_msmtp</code>, <code>common_dnf_automatic</code>, <code>common_logrotate</code></td><td>beide</td><td>Mailversand, Sicherheitsupdates, Log-Rotation</td></tr>
   <tr><td><code>blog_visitor_stats</code></td><td>Blog</td><td>anonyme Besucherstatistik, auf dem Host berechnet</td></tr>
@@ -602,10 +602,10 @@ Die mitgelieferten K3s-Bausteine, die hier keiner braucht (Traefik, ServiceLB, l
 <h3>Überwachung</h3>
 
 <div class="rolle">
-<p><strong><code>common_node_exporter</code></strong> / <strong><code>common_mysqld_exporter</code></strong> (beide / nur Nextcloud)</p>
-<p><strong>Was:</strong> Stellen Kennzahlen des Hosts bzw. der Host-MariaDB lokal bereit (<code>127.0.0.1:9100</code> / <code>:9104</code>).
+<p><strong><code>common_node_exporter</code></strong> / <strong><code>common_mysqld_exporter</code></strong> / <strong><code>common_redis_exporter</code></strong> (beide / nur Nextcloud)</p>
+<p><strong>Was:</strong> Stellen Kennzahlen des Hosts, der Host-MariaDB bzw. (seit 24.11.2026, <code>common_redis_exporter</code>) von Valkey/Redis lokal bereit (<code>127.0.0.1:9100</code> / <code>:9104</code> / <code>:9121</code>).
 <strong>Warum:</strong> Prometheus holt sie dort ab; von außen ist nichts erreichbar.</p>
-<p class="wie"><strong>Wie:</strong> installierte Version lesen → Archiv nur bei abweichender Version laden, entpacken, installieren (<code>get_url</code> → <code>unarchive</code> → <code>copy</code>, im Probelauf übersprungen) → systemd-Unit + Sandbox-Drop-in schreiben (<code>notify</code>) → Handler laden systemd neu und starten den Dienst einmal neu. Der MariaDB-Exporter liest sein Passwort aus einer Datei, die nur er lesen darf (<code>no_log</code>). Seit 19.10.2026 liefert node_exporter auch die <code>*.prom</code>-Dateien aus <code>/var/lib/node_exporter/textfile</code> aus (Textfile-Collector, geschrieben von <code>common_trivy</code>; eigener SELinux-Typ <code>homelab_node_exporter_textfile_t</code>, für den Exporter nur lesbar).</p>
+<p class="wie"><strong>Wie:</strong> installierte Version lesen → Archiv nur bei abweichender Version laden, entpacken, installieren (<code>get_url</code> → <code>unarchive</code> → <code>copy</code>, im Probelauf übersprungen) → systemd-Unit + Sandbox-Drop-in schreiben (<code>notify</code>) → Handler laden systemd neu und starten den Dienst einmal neu. Der MariaDB- und der Redis-Exporter lesen ihr Passwort aus Dateien, die nur sie (bzw. systemd) lesen dürfen (<code>no_log</code>); der MariaDB-Exporter hat seit 24.11.2026 nur noch das Recht <code>PROCESS</code>, der Redis-Exporter läuft in der eigenen SELinux-Domain <code>homelab_redis_exporter_t</code>. Downloads werden gegen die sha256-Liste des Releases geprüft. Seit 19.10.2026 liefert node_exporter auch die <code>*.prom</code>-Dateien aus <code>/var/lib/node_exporter/textfile</code> aus (Textfile-Collector, geschrieben von <code>common_trivy</code>; eigener SELinux-Typ <code>homelab_node_exporter_textfile_t</code>, für den Exporter nur lesbar).</p>
 </div>
 
 <div class="rolle">
