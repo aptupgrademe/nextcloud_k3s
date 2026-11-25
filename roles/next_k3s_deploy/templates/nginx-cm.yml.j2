@@ -146,6 +146,12 @@ data:
             fastcgi_intercept_errors      on;
             fastcgi_request_buffering     off;
             fastcgi_read_timeout          300s;
+            # Do not spool responses into fastcgi_temp: that is a 16Mi memory
+            # emptyDir here, a large download to a slow client would fill it and
+            # break off (ENOSPC). Like Nextcloud's own nginx example and like the
+            # ingress since 2026-10-27, FPM is slowed down to the client instead.
+            # cvjm buffered 113 responses in 14 days (Loki, 2026-11-25), none failed yet.
+            fastcgi_max_temp_file_size    0;
             # Hide PHP version from response headers
             fastcgi_hide_header           X-Powered-By;
         }
@@ -212,7 +218,9 @@ data:
     ; validate_timestamps=0: never check file mtimes – pod restart clears cache on deploy
     opcache.enable                 = 1
     opcache.memory_consumption     = 256
-    opcache.interned_strings_buffer = 16
+    ; 32 = the image's own opcache-recommended.ini; this file sorts after it and
+    ; used to LOWER it to 16 (review P4, 2026-11-25). Nextcloud warns at 90 % full.
+    opcache.interned_strings_buffer = 32
     opcache.max_accelerated_files  = 20000
     opcache.validate_timestamps    = 0
     opcache.revalidate_freq        = 0
