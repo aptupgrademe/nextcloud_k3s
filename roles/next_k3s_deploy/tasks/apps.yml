@@ -69,25 +69,39 @@
     php occ app:enable {{ item }}
   loop: "{{ nextcloud_apps_enabled }}"
   register: nc_app_enable
-  changed_when: "'already enabled' not in (nc_app_enable.stdout | lower)"
+  changed_when:
+    - nc_app_enable.rc == 0
+    - "'already enabled' not in (nc_app_enable.stdout | lower)"
   # An app with no version compatible with the running major cannot be enabled.
   # Tolerate it: a major upgrade then leaves the app disabled instead of failing
   # the whole run. The report task below surfaces exactly which ones.
   failed_when: false
   when: nextcloud_apps_manage | bool
 
+# The report reads the real state instead of the rc above: right after a pod
+# restart app:enable failed for every App-Store app (the new pod is not yet
+# allowed out to the App Store for a few seconds), and the old report then
+# claimed eleven apps "stay disabled" that were all enabled (sofie/cvjm, 2026-11-25).
+- name: Apps | Read the enabled apps
+  ansible.builtin.command: >-
+    k3s kubectl exec -n nextcloud {{ nc_pod.stdout }} -c nextcloud-fpm --
+    php occ app:list --output=json
+  register: nc_app_list_after
+  changed_when: false
+  when: nextcloud_apps_manage | bool
+
 - name: Apps | Report apps left disabled (no version compatible with this major)
   ansible.builtin.debug:
     msg: >-
-      App '{{ item.item }}' could not be enabled and stays disabled
+      App '{{ item }}' is not enabled
       (no release compatible with the running Nextcloud major, or unavailable).
-  loop: "{{ nc_app_enable.results | default([]) }}"
-  loop_control:
-    label: "{{ item.item }}"
+  loop: >-
+    {{ nextcloud_apps_enabled
+       | difference((nc_app_list_after.stdout | default('{}', true) | from_json).enabled | default({}) | list) }}
   when:
     - nextcloud_apps_manage | bool
-    - item.rc is defined
-    - item.rc != 0
+    - nc_app_list_after is not skipped
+    - nc_app_list_after.rc == 0
 
 # opcache.validate_timestamps = 0 (nginx-cm.yml.j2, opcache.ini): FPM never
 # re-checks file mtimes, so files app:update overwrote above would keep
