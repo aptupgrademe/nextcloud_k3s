@@ -30,7 +30,7 @@ kube_state_metrics_image:    "registry.k8s.io/kube-state-metrics/kube-state-metr
 # --- Nextcloud containers -------------------------------------------------------
 nextcloud_image_fpm:          "nextcloud:35.0.3-fpm"         # majors one at a time (35 -> 36)
 nextcloud_image_nginx:        "nginx:1.30.7-alpine"          # nginx stable branch, see notes
-nextcloud_image_collabora:    "collabora/code:26.04.6.1.1"
+nextcloud_image_collabora:    "collabora/code:26.04.6.2.1"
 nextcloud_image_fpm_exporter: "hipages/php-fpm_exporter:2.2.0"
 nextcloud_image_busybox:      "busybox:1"                    # init containers, floating on purpose
 
@@ -197,6 +197,8 @@ nextcloud_mariadb_repo_version: "11.8"    # MariaDB Community repo series on the
 #   speaks plain HTTP/1.1 to the ingress, so most of them were not reachable here.
 #
 # nextcloud_image_collabora
+#   2026-11-25 26.04.6.1.1 -> 26.04.6.2.1 (patch release of 2026-11-20, signed; taken before the
+#              two-week rule on the owner's request - test first, then sofie, then cvjm).
 #   2026-11-16 26.04.5.2.1 -> 26.04.6.1.1 (release of 2026-11-07, within 26.04).
 #   2026-10-26 26.04.5.1.1 -> 26.04.5.2.1 (patch release).
 #   2026-10-11 26.04.3.1.1 -> 26.04.5.1.1 (patch within 26.04).
